@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HeartLog.Api", "HeartLog.Api\HeartLog.Api.csproj", "{711CA68B-CD54-43ED-B747-EAFBCB0A428C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HeartLog.BLL", "HeartLog.BLL\HeartLog.BLL.csproj", "{25D9D657-D675-4AD6-95DC-90C61792EED4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HeartLog.DAL", "HeartLog.DAL\HeartLog.DAL.csproj", "{07C03DE2-E720-4001-8793-B0CECA25DB29}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{711CA68B-CD54-43ED-B747-EAFBCB0A428C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{711CA68B-CD54-43ED-B747-EAFBCB0A428C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{711CA68B-CD54-43ED-B747-EAFBCB0A428C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{711CA68B-CD54-43ED-B747-EAFBCB0A428C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{25D9D657-D675-4AD6-95DC-90C61792EED4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{25D9D657-D675-4AD6-95DC-90C61792EED4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{25D9D657-D675-4AD6-95DC-90C61792EED4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{25D9D657-D675-4AD6-95DC-90C61792EED4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{07C03DE2-E720-4001-8793-B0CECA25DB29}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{07C03DE2-E720-4001-8793-B0CECA25DB29}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{07C03DE2-E720-4001-8793-B0CECA25DB29}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{07C03DE2-E720-4001-8793-B0CECA25DB29}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
