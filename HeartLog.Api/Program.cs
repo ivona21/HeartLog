@@ -1,4 +1,7 @@
-using HeartLog.DAL.Data;               // for ApplicationDbContext
+using HeartLog.BLL;
+using HeartLog.BLL.Interfaces;
+using HeartLog.DAL.Data;
+using HeartLog.DAL.Repositories; // for ApplicationDbContext
 using Microsoft.EntityFrameworkCore;   // for UseNpgsql
 
 var builder = WebApplication.CreateBuilder(args);
@@ -8,6 +11,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddOpenApi();
 
 builder.Services.AddControllers();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<UserRepository>();
 // Add DbContext to the DI container
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
