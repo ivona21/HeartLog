@@ -11,7 +11,9 @@ public class ApplicationDbContextFactory : IDesignTimeDbContextFactory<Applicati
         // Build config from appsettings.json in the API project
         var configuration = new ConfigurationBuilder()
             .SetBasePath(Path.Combine(Directory.GetCurrentDirectory(), "../HeartLog.Api"))
-            .AddJsonFile("appsettings.json")
+            .AddJsonFile("appsettings.json", optional: false)
+            .AddJsonFile("appsettings.Development.json", optional: true)
+            .AddEnvironmentVariables()
             .Build();
 
         var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
