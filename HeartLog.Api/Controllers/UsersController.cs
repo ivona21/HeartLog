@@ -40,4 +40,17 @@ public class UsersController : ControllerBase
         // call service
         return Ok("User registered successfully");
     }
+    
+    [HttpPost("login")]
+    public async Task<IActionResult> LoginUser(UserLoginDto userDto)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        // Here you would typically validate the user credentials and issue a token
+        // For now, we will just return a success message
+        return Ok("User logged in successfully");
+    }
 }
