@@ -1,6 +1,7 @@
 using HeartLog.BLL.Interfaces;
 using HeartLog.DAL.Models;
 using HeartLog.DAL.Repositories;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 
 namespace HeartLog.BLL;
@@ -31,5 +32,22 @@ public class UserService: IUserService
         // call repository to save user
         await _userRepository.AddUserAsync(user);
         await _userRepository.SaveChangesAsync();
+    }
+
+    public async Task LoginUserAsync(string email, string password)
+    {
+        var existingUser = await _userRepository.GetByEmailAsync(email);
+        if (existingUser == null)
+        {
+            _logger.LogInformation("Login attempt with non-existing email: {Email}", email);
+            throw new Exception("User with this email does not exist.");
+        }
+        var passwordHash = new PasswordHasher<User>().HashPassword(null, password);
+        var passwordVerificationResult = new PasswordHasher<User>().VerifyHashedPassword(existingUser, existingUser.PasswordHash, passwordHash);
+        if (passwordVerificationResult == PasswordVerificationResult.Failed)
+        {
+            _logger.LogInformation("Login attempt with incorrect password for email: {Email}", email);
+            throw new Exception("Incorrect password.");
+        }
     }
 }

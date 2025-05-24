@@ -44,9 +44,13 @@ public class UsersController : ControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> LoginUser(UserLoginDto userDto)
     {
-        if (!ModelState.IsValid)
+        try
         {
-            return BadRequest(ModelState);
+            await _userService.LoginUserAsync(userDto.Email, userDto.Password);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest("Unable to login. Please check your credentials.");
         }
 
         // Here you would typically validate the user credentials and issue a token
