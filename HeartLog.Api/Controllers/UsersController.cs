@@ -26,7 +26,14 @@ public class UsersController : ControllerBase
         }
         
         User user = UserMapper.ToEntity(userDto);
-        await _userService.RegisterUserAsync(user);
+        try
+        {
+            await _userService.RegisterUserAsync(user);
+        } catch (Exception ex)
+        {
+            return BadRequest("Unable to register. Please check your input or try logging in if you already have an account.");
+        }
+
         // call service
         return Ok("User registered successfully");
     }
