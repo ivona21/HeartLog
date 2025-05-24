@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using HeartLog.Api.Mappers;
 using HeartLog.DAL.Models;
 using HeartLog.BLL.Interfaces;
+using Microsoft.AspNetCore.Identity;
 
 namespace HeartLog.Api.Controllers;
 
@@ -11,10 +12,12 @@ namespace HeartLog.Api.Controllers;
 public class UsersController : ControllerBase
 {
     private readonly IUserService _userService;
+    private readonly PasswordHasher<User> _passwordHasher;
 
     public UsersController(IUserService userService)
     {
         _userService = userService;
+        _passwordHasher = new PasswordHasher<User>();
     }
 
     [HttpPost("register")]
@@ -25,7 +28,7 @@ public class UsersController : ControllerBase
             return BadRequest(ModelState);
         }
         
-        User user = UserMapper.ToEntity(userDto);
+        User user = UserMapper.ToEntity(userDto, _passwordHasher);
         try
         {
             await _userService.RegisterUserAsync(user);

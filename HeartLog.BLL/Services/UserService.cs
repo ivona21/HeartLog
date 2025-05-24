@@ -26,7 +26,6 @@ public class UserService: IUserService
             throw new Exception("User with this email already exists.");
         }
         
-        // hash password here - todo
         // send an email - later - todo
         
         // call repository to save user
