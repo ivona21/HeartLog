@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using HeartLog.Api.Validation;
 
 namespace HeartLog.Api.DTOs;
 
@@ -13,6 +14,6 @@ public class UserRegisterDto
     public string Username { get; set; } = string.Empty;
     
     [Required]
-    [MinLength(8, ErrorMessage = "Password must be at least 6 characters.")] //todo - enforce more validation
+    [PasswordComplexity(MinimumLength = 8)]
     public string Password { get; set; } = string.Empty;
 }
