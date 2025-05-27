@@ -34,7 +34,7 @@ public class UserService: IUserService
         await _userRepository.SaveChangesAsync();
     }
 
-    public async Task LoginUserAsync(string email, string password)
+    public async Task<User> LoginUserAsync(string email, string password)
     {
         var existingUser = await _userRepository.GetByEmailAsync(email);
         if (existingUser == null)
@@ -48,5 +48,7 @@ public class UserService: IUserService
             _logger.LogInformation("Login attempt with incorrect password for email: {Email}", email);
             throw new Exception("Incorrect password.");
         }
+
+        return existingUser;
     }
 }
