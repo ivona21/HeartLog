@@ -42,8 +42,7 @@ public class UserService: IUserService
             _logger.LogInformation("Login attempt with non-existing email: {Email}", email);
             throw new Exception("User with this email does not exist.");
         }
-        var passwordHash = new PasswordHasher<User>().HashPassword(null, password);
-        var passwordVerificationResult = new PasswordHasher<User>().VerifyHashedPassword(existingUser, existingUser.PasswordHash, passwordHash);
+        var passwordVerificationResult = new PasswordHasher<User>().VerifyHashedPassword(null, existingUser.PasswordHash, password);
         if (passwordVerificationResult == PasswordVerificationResult.Failed)
         {
             _logger.LogInformation("Login attempt with incorrect password for email: {Email}", email);
