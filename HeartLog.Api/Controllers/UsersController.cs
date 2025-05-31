@@ -4,11 +4,13 @@ using Microsoft.AspNetCore.Mvc;
 using HeartLog.Api.Mappers;
 using HeartLog.DAL.Models;
 using HeartLog.BLL.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 
 namespace HeartLog.Api.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/[controller]")]
 public class UsersController : ControllerBase
 {
@@ -23,6 +25,7 @@ public class UsersController : ControllerBase
         _tokenGenerator = tokenGenerator;
     }
 
+    [AllowAnonymous]
     [HttpPost("register")]
     public async Task<IActionResult> RegisterUser(UserRegisterDto userDto)
     {
@@ -44,6 +47,7 @@ public class UsersController : ControllerBase
         return Ok("User registered successfully");
     }
     
+    [AllowAnonymous]
     [HttpPost("login")]
     public async Task<IActionResult> LoginUser(UserLoginDto userDto)
     {
@@ -58,13 +62,18 @@ public class UsersController : ControllerBase
         }
 
         string token =_tokenGenerator.GenerateToken(existingUser);
-        // Here you would typically validate the user credentials and issue a token
-        // For now, we will just return a success message
         return Ok(new LoginResponseDto
         {
             Email = existingUser.Email,
             Username = existingUser.Username,
             Token = token
         });
+    }
+    
+    [Authorize]
+    [HttpGet("confidential")]
+    public async Task<IActionResult> GetSomethingConfidential()
+    {
+        return Ok(new { Message = "Something confidential :)" });
     }
 }

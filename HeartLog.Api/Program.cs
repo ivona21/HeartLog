@@ -3,7 +3,8 @@ using HeartLog.Api.JwtToken;
 using HeartLog.BLL;
 using HeartLog.BLL.Interfaces;
 using HeartLog.DAL.Data;
-using HeartLog.DAL.Repositories; // for ApplicationDbContext
+using HeartLog.DAL.Repositories;
+using Microsoft.AspNetCore.Authentication.JwtBearer; // for ApplicationDbContext
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens; // for UseNpgsql
 
@@ -23,9 +24,10 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddAuthentication("Baerer")
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
+        var jwtSettings = builder.Configuration.GetSection("JwtSettings");
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
@@ -38,6 +40,7 @@ builder.Services.AddAuthentication("Baerer")
                 Encoding.UTF8.GetBytes(jwtSettings["SecretKey"]))
         };
     });
+
 
 builder.Services.AddAuthorization();
 builder.Services.AddScoped<JwtTokenGenerator>();
