@@ -2,6 +2,7 @@ using HeartLog.Api.DTOs;
 using HeartLog.Api.JwtToken;
 using Microsoft.AspNetCore.Mvc;
 using HeartLog.Api.Mappers;
+using HeartLog.BLL.Exceptions;
 using HeartLog.DAL.Models;
 using HeartLog.BLL.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -35,12 +36,19 @@ public class UsersController : ControllerBase
         }
         
         User user = UserMapper.ToEntity(userDto, _passwordHasher);
+        
         try
         {
             await _userService.RegisterUserAsync(user);
-        } catch (Exception ex)
+        }
+        catch (ExistingEmailException ex)
         {
-            return BadRequest("Unable to register. Please check your input or try logging in if you already have an account.");
+            return BadRequest(
+                "Unable to register. Please check your input or try logging in if you already have an account.");
+        }
+        catch (ExistingUsernameException ex)
+        {
+            return Conflict("Username is taken. Please choose another one");
         }
 
         // call service

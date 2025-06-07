@@ -1,3 +1,4 @@
+using HeartLog.BLL.Exceptions;
 using HeartLog.BLL.Interfaces;
 using HeartLog.DAL.Models;
 using HeartLog.DAL.Repositories;
@@ -24,10 +25,18 @@ public class UserService: IUserService
         if (existingUser != null)
         {
             _logger.LogInformation("Attempted registration with existing email: {Email}", user.Email);
-            throw new Exception("User with this email already exists.");
+            throw new ExistingEmailException(user.Email);
         }
         
         // send an email - later - todo
+        
+        // check if username is taken
+        User userWithSameUsername = await _userRepository.GetByUsername(user.Username);
+        if (userWithSameUsername != null)
+        {
+            _logger.LogInformation("Attempted registration with existing username: {Username} from an email {Email}", user.Username, user.Email);
+            throw new ExistingUsernameException(user.Username);
+        }
         
         // call repository to save user
         await _userRepository.AddUserAsync(user);

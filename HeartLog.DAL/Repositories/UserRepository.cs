@@ -30,5 +30,10 @@ public class UserRepository
     {
         return await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
     }
+
+    public async Task<User?> GetByUsername(string username)
+    {
+        return await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
+    }
     
 }
