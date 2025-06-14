@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: heartlog
+    env: docker
+    plan: free
+    repo: https://github.com/ivona21/HeartLog.git
+    branch: main
+    autoDeploy: true
+    envVars:
+ - key: ASPNETCORE_ENVIRONMENT
+    value: Production
+  - key: DOTNET_RUNNING_IN_CONTAINER
+    value: "true"
+      - key: ConnectionStrings__Default
+        fromDatabase:
+          name: heartlog-postgres
+          property: connectionString
+- key: JWT_SECRET_KEY
+fromSecret: jwt_secret_key_name_on_render
+
