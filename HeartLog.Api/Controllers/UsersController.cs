@@ -11,7 +11,6 @@ using Microsoft.AspNetCore.Identity;
 namespace HeartLog.Api.Controllers;
 
 [ApiController]
-[Authorize]
 [Route("api/[controller]")]
 public class UsersController : ControllerBase
 {
@@ -83,5 +82,11 @@ public class UsersController : ControllerBase
     public async Task<IActionResult> GetSomethingConfidential()
     {
         return Ok(new { Message = "Something confidential :)" });
+    }
+
+    [HttpGet("ping")]
+    public async Task<IActionResult> Ping()
+    {
+        return Ok(new { Message = "Pong" });
     }
 }
