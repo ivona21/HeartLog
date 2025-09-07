@@ -25,8 +25,4 @@
     <ProjectReference Include="..\HeartLog.BLL\HeartLog.BLL.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <None Remove=".env" />
-  </ItemGroup>
-
 </Project>
