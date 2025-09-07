@@ -77,6 +77,11 @@ builder.Services.AddSwaggerGen(c =>
 builder.Services.AddAuthorization();
 builder.Services.AddScoped<JwtTokenGenerator>();
 
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.ListenAnyIP(80); // <--- This forces the app to listen on port 80
+});
+
 var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -93,5 +98,6 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapGet("/ping", () => Results.Ok("pong"));
+app.MapGet("/", () => "HeartLog API is running 🚀");
 app.MapControllers();
 app.Run();
