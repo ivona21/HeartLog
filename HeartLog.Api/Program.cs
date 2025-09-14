@@ -20,7 +20,9 @@ builder.Services.AddOpenApi();
 
 builder.Services.AddControllers();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IItemService, ItemService>();
 builder.Services.AddScoped<UserRepository>();
+builder.Services.AddScoped<ItemsRepository>();
 // Add DbContext to the DI container
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(Environment.GetEnvironmentVariable("DATABASE_URL")));
