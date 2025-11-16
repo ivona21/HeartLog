@@ -80,7 +80,23 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
+// 1. Define a CORS policy
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowV0Frontend", policy =>
+    {
+        policy.WithOrigins(
+                "http://localhost:5173",      // your local frontend dev
+                "https://v0-heart-log-calm-fee5obmca-ivonas-projects-17db0703.vercel.app/" // deployed V0 frontend
+            )
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials(); // if using cookies/auth headers
+    });
+});
 
+// Add services
+builder.Services.AddControllers();
 builder.Services.AddAuthorization();
 builder.Services.AddScoped<JwtTokenGenerator>();
 
@@ -101,6 +117,7 @@ var app = builder.Build();
     });
 // }
 
+app.UseCors("AllowV0Frontend");
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
