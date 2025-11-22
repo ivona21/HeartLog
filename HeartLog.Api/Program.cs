@@ -87,14 +87,15 @@ builder.Services.AddCors(options =>
     {
         policy.WithOrigins(
                 "http://localhost:5173",      // your local frontend dev
-                "https://v0-heart-log-calm-fee5obmca-ivonas-projects-17db0703.vercel.app/", // deployed V0 frontend,
-                "https://heart-log-calm.vercel.app/"
+                "https://v0-heart-log-calm-fee5obmca-ivonas-projects-17db0703.vercel.app", // deployed V0 frontend,
+                "https://heart-log-calm.vercel.app"
             )
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials(); // if using cookies/auth headers
     });
 });
+
 
 // Add services
 builder.Services.AddControllers();
@@ -107,6 +108,7 @@ builder.WebHost.ConfigureKestrel(options =>
 });
 
 var app = builder.Build();
+app.UseCors("AllowV0Frontend");
 // Configure the HTTP request pipeline.
 // if (app.Environment.IsDevelopment())
 // {
@@ -118,7 +120,6 @@ var app = builder.Build();
     });
 // }
 
-app.UseCors("AllowV0Frontend");
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
