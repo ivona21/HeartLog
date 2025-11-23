@@ -87,6 +87,7 @@ builder.Services.AddCors(options =>
     {
         policy.WithOrigins(
                 "http://localhost:5173",      // your local frontend dev
+                "http://localhost:5001",
                 "https://v0-heart-log-calm-fee5obmca-ivonas-projects-17db0703.vercel.app", // deployed V0 frontend,
                 "https://heart-log-calm.vercel.app",
                 "https://replit.com/@coffeebreak5551/HeartLogCalm"
