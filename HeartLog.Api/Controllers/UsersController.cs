@@ -31,7 +31,18 @@ public class UsersController : ControllerBase
     {
         if (!ModelState.IsValid)
         {
-            return BadRequest(ModelState);
+            var errors = ModelState
+                .Where(x => x.Value.Errors.Any())
+                .ToDictionary(
+                    x => x.Key,
+                    x => x.Value.Errors.Select(e => e.ErrorMessage).ToArray()
+                );
+
+            return BadRequest(new ErrorResponse
+            {
+                Message = "Validation failed",
+                Errors = errors
+            });
         }
         
         User user = UserMapper.ToEntity(userDto, _passwordHasher);
@@ -65,7 +76,11 @@ public class UsersController : ControllerBase
         }
         catch (Exception ex)
         {
-            return BadRequest("Unable to login. Please check your credentials.");
+            return BadRequest(new ErrorResponse
+            {
+                Message = "Unable to login. Please check your credentials.",
+                Errors = null
+            });
         }
 
         string token =_tokenGenerator.GenerateToken(existingUser);

@@ -1,4 +1,5 @@
 using System.Text;
+using HeartLog.Api.DTOs;
 using HeartLog.Api.JwtToken;
 using HeartLog.BLL;
 using HeartLog.BLL.Interfaces;
@@ -126,6 +127,22 @@ app.UseCors("AllowV0Frontend");
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseExceptionHandler(errorApp =>
+{
+    errorApp.Run(async context =>
+    {
+        context.Response.StatusCode = 500;
+        context.Response.ContentType = "application/json";
+
+        var errorResponse = new ErrorResponse
+        {
+            Message = "Internal server error",
+            Errors = null
+        };
+
+        await context.Response.WriteAsJsonAsync(errorResponse);
+    });
+});
 app.MapGet("/ping", () => Results.Ok("pong"));
 app.MapGet("/", () => "HeartLog API is running 🚀");
 app.MapControllers();
