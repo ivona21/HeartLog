@@ -53,12 +53,22 @@ public class UsersController : ControllerBase
         }
         catch (ExistingEmailException ex)
         {
-            return BadRequest(
-                "Unable to register. Please check your input or try logging in if you already have an account.");
+            return BadRequest(new ErrorResponse
+            {
+                Message =
+                    "Unable to register. Please check your input or try logging in if you already have an account.",
+                Errors = null
+                
+            });
         }
         catch (ExistingUsernameException ex)
         {
-            return Conflict("Username is taken. Please choose another one");
+            return Conflict(new ErrorResponse
+            {
+                Message = "Username is taken. Please choose another one",
+                Errors = null
+
+            });
         }
 
         // call service
