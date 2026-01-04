@@ -27,7 +27,7 @@ public class UsersController : ControllerBase
 
     [AllowAnonymous]
     [HttpPost("register")]
-    public async Task<IActionResult> RegisterUser(UserRegisterDto userDto)
+    public async Task<ActionResult<ApiResponse>> RegisterUser(UserRegisterDto userDto)
     {
         if (!ModelState.IsValid)
         {
@@ -72,12 +72,17 @@ public class UsersController : ControllerBase
         }
 
         // call service
-        return Ok("User registered successfully");
+        return Ok(new ApiResponse
+            (Success: true, 
+                Message: "User registered successfully"
+                )
+        );
     }
     
+
     [AllowAnonymous]
     [HttpPost("login")]
-    public async Task<IActionResult> LoginUser(UserLoginDto userDto)
+    public async Task<ActionResult<ApiResponse>> LoginUser(UserLoginDto userDto)
     {
         User existingUser = new User();
         try
@@ -94,24 +99,25 @@ public class UsersController : ControllerBase
         }
 
         string token =_tokenGenerator.GenerateToken(existingUser);
-        return Ok(new LoginResponseDto
-        {
-            Email = existingUser.Email,
+        return Ok(new ApiResponse<LoginResponseDto>
+            (Success: true, 
+                Message: "Login successful", 
+                Data:  new LoginResponseDto {
+                        Email = existingUser.Email,
             Username = existingUser.Username,
-            Token = token
-        });
+            Token = token}));
     }
     
     [Authorize]
     [HttpGet("confidential")]
-    public async Task<IActionResult> GetSomethingConfidential()
+    public async Task<ActionResult<ApiResponse>> GetSomethingConfidential()
     {
-        return Ok(new { Message = "Something confidential :)" });
+        return Ok(new ApiResponse(Success: true, Message: "Something confidential"));
     }
 
     [HttpGet("ping")]
-    public async Task<IActionResult> Ping()
+    public async Task<ActionResult<ApiResponse>> Ping()
     {
-        return Ok(new { Message = "Pong" });
+        return Ok(new ApiResponse(Success:true, Message: "Pong" ));
     }
 }
