@@ -2,9 +2,10 @@ using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 using HeartLog.DAL.Models;
+using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 
-namespace HeartLog.Api.JwtToken;
+namespace HeartLog.BLL.Services;
 
 public class JwtTokenGenerator
 {

@@ -1,6 +1,5 @@
 using System.Text;
 using HeartLog.Api.DTOs;
-using HeartLog.Api.JwtToken;
 using HeartLog.BLL;
 using HeartLog.BLL.Interfaces;
 using HeartLog.DAL.Data;
@@ -9,6 +8,10 @@ using Microsoft.AspNetCore.Authentication.JwtBearer; // for ApplicationDbContext
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models; // for UseNpgsql
+
+using HeartLog.Api.Middleware;
+using HeartLog.BLL.Services;
+using Microsoft.AspNetCore.Mvc;
 
 DotNetEnv.Env.Load();
 var builder = WebApplication.CreateBuilder(args);
@@ -19,11 +22,32 @@ var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        options.InvalidModelStateResponseFactory = context =>
+        {
+            var errors = context.ModelState
+                .Where(e => e.Value.Errors.Count > 0)
+                .ToDictionary(
+                    kvp => kvp.Key,
+                    kvp => kvp.Value.Errors.Select(e => e.ErrorMessage).ToArray()
+                );
+
+            var errorResponse = new ErrorResponse
+            {
+                Message = "Validation failed",
+                Errors = errors
+            };
+
+            return new BadRequestObjectResult(errorResponse);
+        };
+    });
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IItemService, ItemService>();
 builder.Services.AddScoped<UserRepository>();
 builder.Services.AddScoped<ItemsRepository>();
+builder.Services.AddScoped<JwtTokenGenerator>();
 // Add DbContext to the DI container
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(Environment.GetEnvironmentVariable("DATABASE_URL")));
@@ -102,9 +126,7 @@ builder.Services.AddCors(options =>
 
 
 // Add services
-builder.Services.AddControllers();
 builder.Services.AddAuthorization();
-builder.Services.AddScoped<JwtTokenGenerator>();
 
 builder.WebHost.ConfigureKestrel(options =>
 {
@@ -112,6 +134,9 @@ builder.WebHost.ConfigureKestrel(options =>
 });
 
 var app = builder.Build();
+
+app.UseMiddleware<ExceptionHandlingMiddleware>();
+
 app.UseCors("AllowV0Frontend");
 // Configure the HTTP request pipeline.
 // if (app.Environment.IsDevelopment())
@@ -127,22 +152,7 @@ app.UseCors("AllowV0Frontend");
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseExceptionHandler(errorApp =>
-{
-    errorApp.Run(async context =>
-    {
-        context.Response.StatusCode = 500;
-        context.Response.ContentType = "application/json";
 
-        var errorResponse = new ErrorResponse
-        {
-            Message = "Internal server error",
-            Errors = null
-        };
-
-        await context.Response.WriteAsJsonAsync(errorResponse);
-    });
-});
 app.MapGet("/ping", () => Results.Ok("pong"));
 app.MapGet("/", () => "HeartLog API is running 🚀");
 app.MapControllers();

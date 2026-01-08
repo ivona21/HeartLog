@@ -1,0 +1,62 @@
+using HeartLog.Api.DTOs;
+using HeartLog.Api.Mappers;
+using HeartLog.BLL.Interfaces;
+using HeartLog.DAL.Models;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace HeartLog.Api.Controllers;
+
+[ApiController]
+[Route("api/auth")]
+public class AuthController : ControllerBase
+{
+    private readonly IUserService _userService;
+
+    public AuthController(IUserService userService)
+    {
+        _userService = userService;
+    }
+
+    [AllowAnonymous]
+    [HttpPost("register")]
+    public async Task<ActionResult<ApiResponse>> Register(UserRegisterDto userDto)
+    {
+        User user = UserMapper.ToEntity(userDto);
+        await _userService.RegisterUserAsync(user, userDto.Password);
+
+        return Ok(new ApiResponse(Success: true, Message: "User registered successfully"));
+    }
+
+    [AllowAnonymous]
+    [HttpPost("login")]
+    public async Task<ActionResult<ApiResponse<LoginResponseDto>>> Login(UserLoginDto userDto)
+    {
+        string token = await _userService.LoginUserAsync(userDto.Email, userDto.Password);
+        
+        // Note: Ideally UserService should return more user info if needed, 
+        // but for now we'll just return the token and basic info from input
+        return Ok(new ApiResponse<LoginResponseDto>
+        (Success: true,
+            Message: "Login successful",
+            Data: new LoginResponseDto
+            {
+                Email = userDto.Email,
+                Token = token
+                // Username would ideally come from the service result
+            }));
+    }
+
+    [Authorize]
+    [HttpGet("confidential")]
+    public async Task<ActionResult<ApiResponse>> GetSomethingConfidential()
+    {
+        return Ok(new ApiResponse(Success: true, Message: "Something confidential"));
+    }
+
+    [HttpGet("ping")]
+    public async Task<ActionResult<ApiResponse>> Ping()
+    {
+        return Ok(new ApiResponse(Success: true, Message: "Pong"));
+    }
+}

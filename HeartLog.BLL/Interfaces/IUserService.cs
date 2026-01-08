@@ -4,6 +4,6 @@ namespace HeartLog.BLL.Interfaces;
 
 public interface IUserService
 {
-    Task RegisterUserAsync(User user);
-    Task<User> LoginUserAsync(string email, string password);
+    Task RegisterUserAsync(User user, string password);
+    Task<string> LoginUserAsync(string email, string password);
 }
