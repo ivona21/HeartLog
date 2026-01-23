@@ -1,4 +1,5 @@
 using HeartLog.Api.DTOs;
+using HeartLog.Api.Mappers;
 using HeartLog.BLL.Interfaces;
 using HeartLog.DAL.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -19,7 +20,18 @@ public class ItemsController: ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetItems()
     {
-        return Ok(await _itemService.GetAllItemsAsync());
+        IEnumerable<Item> items = await _itemService.GetAllItemsAsync();
+        var itemDtos = items.Select(i => new ItemDto
+        {
+            Name = i.Name,
+            Id = i.Id
+        });
+        
+        
+        return Ok(new ApiResponse<IEnumerable<ItemDto>>(
+            Success: true,
+            Message: "Items retrieved successfully",
+            Data: itemDtos));
     }
 
     [HttpPost]
