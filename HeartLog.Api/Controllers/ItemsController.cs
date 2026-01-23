@@ -38,6 +38,9 @@ public class ItemsController: ControllerBase
     public async Task<IActionResult> SaveItem(ItemDto item)
     {
         await _itemService.AddItemAsync(new Item { Name = item.Name });
-        return Ok();
+        return Ok(new ApiResponse<ItemDto>(
+            Success: true,
+            Message: "Item saved successfully",
+            Data: item));
     }
 }
