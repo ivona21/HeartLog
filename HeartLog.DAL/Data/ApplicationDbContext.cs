@@ -15,11 +15,14 @@ public class ApplicationDbContext: DbContext
     public DbSet<Item> Items { get; set; } = null!;
 
     public DbSet<Emotion> Emotions { get; set; } = null!;
+    
+    public DbSet<EmotionTranslation> EmotionTranslations { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
         modelBuilder.ApplyConfiguration(new UserConfiguration());
         modelBuilder.ApplyConfiguration(new EmotionConfiguration());
+        modelBuilder.ApplyConfiguration(new EmotionTranslationConfiguration());
     }
 }
