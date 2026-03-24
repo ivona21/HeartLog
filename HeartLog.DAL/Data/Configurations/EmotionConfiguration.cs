@@ -14,10 +14,6 @@ public class EmotionConfiguration : IEntityTypeConfiguration<Emotion>
             .IsRequired()
             .HasMaxLength(200);
 
-        builder.Property(e => e.Label)
-            .IsRequired()
-            .HasMaxLength(100);
-
         builder.Property(e => e.Level)
             .HasConversion<int>();
 
@@ -33,5 +29,10 @@ public class EmotionConfiguration : IEntityTypeConfiguration<Emotion>
             .WithMany(e => e.Children)
             .HasForeignKey(e => e.ParentId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasMany(e => e.Translations)
+            .WithOne(t => t.Emotion)
+            .HasForeignKey(t => t.EmotionId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }
