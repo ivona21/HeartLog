@@ -13,8 +13,6 @@ public class Emotion
 
     public string Key { get; set; } = null!;
 
-    public string Label { get; set; } = null!;
-
     public EmotionLevel Level { get; set; }
 
     public string? Color { get; set; }
@@ -27,4 +25,5 @@ public class Emotion
     public Emotion? Parent { get; set; }
 
     public List<Emotion> Children { get; set; } = [];
+    public List<EmotionTranslation> Translations { get; set; } = [];
 }
