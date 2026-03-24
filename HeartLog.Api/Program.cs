@@ -11,6 +11,7 @@ using Microsoft.OpenApi.Models; // for UseNpgsql
 
 using HeartLog.Api.Middleware;
 using HeartLog.BLL.Services;
+using HeartLog.DAL.Seeding;
 using Microsoft.AspNetCore.Mvc;
 
 DotNetEnv.Env.Load();
@@ -48,6 +49,7 @@ builder.Services.AddScoped<IItemService, ItemService>();
 builder.Services.AddScoped<UserRepository>();
 builder.Services.AddScoped<ItemsRepository>();
 builder.Services.AddScoped<JwtTokenGenerator>();
+builder.Services.AddScoped<EmotionSeeder>();
 // Add DbContext to the DI container
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(Environment.GetEnvironmentVariable("DATABASE_URL")));
@@ -134,6 +136,15 @@ builder.WebHost.ConfigureKestrel(options =>
 });
 
 var app = builder.Build();
+
+await using (var scope = app.Services.CreateAsyncScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    var emotionSeeder = scope.ServiceProvider.GetRequiredService<EmotionSeeder>();
+
+    await dbContext.Database.MigrateAsync();
+    await emotionSeeder.SeedAsync();
+}
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
