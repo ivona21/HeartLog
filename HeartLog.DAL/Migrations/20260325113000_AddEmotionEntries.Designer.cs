@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace HeartLog.DAL.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260325110000_AddEmotionEntriesAndResetUsersToGuid")]
-    partial class AddEmotionEntriesAndResetUsersToGuid
+    [Migration("20260325113000_AddEmotionEntries")]
+    partial class AddEmotionEntries
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
