@@ -17,6 +17,7 @@ public class EmotionsRepository
     {
         return await _context.Emotions
             .AsNoTracking()
+            .Where(e => e.IsActive)
             .Include(e => e.Translations.Where(t => t.Locale == locale))
             .OrderBy(e => e.SortOrder)
             .ToListAsync();
