@@ -1,5 +1,6 @@
 using HeartLog.DAL.Data;
 using HeartLog.DAL.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace HeartLog.DAL.Repositories;
 
@@ -20,5 +21,18 @@ public class EmotionEntriesRepository
     public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         await _context.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<int> CountByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        return await _context.EmotionEntries
+            .CountAsync(entry => entry.UserId == userId, cancellationToken);
+    }
+
+    public async Task<DateTime?> GetLatestOccurredAtByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        return await _context.EmotionEntries
+            .Where(entry => entry.UserId == userId)
+            .MaxAsync(entry => (DateTime?)entry.OccurredAt, cancellationToken);
     }
 }

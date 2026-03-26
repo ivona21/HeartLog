@@ -11,4 +11,8 @@ public interface IEmotionEntryService
         string? comment,
         DateTime? occurredAt,
         CancellationToken cancellationToken = default);
+
+    Task<EmotionEntriesSummary> GetSummaryAsync(
+        string userEmail,
+        CancellationToken cancellationToken = default);
 }
