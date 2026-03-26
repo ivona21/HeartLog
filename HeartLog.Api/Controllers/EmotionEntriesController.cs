@@ -41,4 +41,21 @@ public class EmotionEntriesController : ControllerBase
             Message: "Emotion entry created successfully",
             Data: result.ToDto()));
     }
+
+    [HttpGet("summary")]
+    public async Task<IActionResult> GetSummary(CancellationToken cancellationToken)
+    {
+        var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrWhiteSpace(userEmail))
+        {
+            return Unauthorized(new ErrorResponse { Message = "Authenticated user email was not found." });
+        }
+
+        var summary = await _emotionEntryService.GetSummaryAsync(userEmail, cancellationToken);
+
+        return Ok(new ApiResponse<EmotionEntriesSummaryResponse>(
+            Success: true,
+            Message: "Emotion entry summary retrieved successfully",
+            Data: summary.ToDto()));
+    }
 }

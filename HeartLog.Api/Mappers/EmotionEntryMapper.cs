@@ -22,4 +22,13 @@ public static class EmotionEntryMapper
                 .ToList()
         };
     }
+
+    public static EmotionEntriesSummaryResponse ToDto(this EmotionEntriesSummary summary)
+    {
+        return new EmotionEntriesSummaryResponse
+        {
+            TotalEntries = summary.TotalEntries,
+            LatestOccurredAt = summary.LatestOccurredAt
+        };
+    }
 }

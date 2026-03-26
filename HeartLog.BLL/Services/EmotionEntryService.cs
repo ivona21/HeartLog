@@ -118,4 +118,29 @@ public class EmotionEntryService : IEmotionEntryService
                 .ToList()
         };
     }
+
+    public async Task<EmotionEntriesSummary> GetSummaryAsync(
+        string userEmail,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(userEmail))
+        {
+            throw new UnauthorizedAccessException("Authenticated user email was not found.");
+        }
+
+        var user = await _userRepository.GetByEmailAsync(userEmail);
+        if (user is null)
+        {
+            throw new UnauthorizedAccessException("Authenticated user could not be resolved.");
+        }
+
+        var totalEntries = await _emotionEntriesRepository.CountByUserIdAsync(user.Id, cancellationToken);
+        var latestOccurredAt = await _emotionEntriesRepository.GetLatestOccurredAtByUserIdAsync(user.Id, cancellationToken);
+
+        return new EmotionEntriesSummary
+        {
+            TotalEntries = totalEntries,
+            LatestOccurredAt = latestOccurredAt
+        };
+    }
 }
