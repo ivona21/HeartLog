@@ -44,6 +44,10 @@ public class ExceptionHandlingMiddleware
                 context.Response.StatusCode = (int)HttpStatusCode.Conflict;
                 response.Message = exception.Message;
                 break;
+            case InvalidEmotionEntryException:
+                context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+                response.Message = exception.Message;
+                break;
             case UnauthorizedAccessException:
                 context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
                 response.Message = exception.Message;

@@ -47,9 +47,11 @@ builder.Services.AddControllers()
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IItemService, ItemService>();
 builder.Services.AddScoped<IEmotionService, EmotionService>();
+builder.Services.AddScoped<IEmotionEntryService, EmotionEntryService>();
 builder.Services.AddScoped<UserRepository>();
 builder.Services.AddScoped<ItemsRepository>();
 builder.Services.AddScoped<EmotionsRepository>();
+builder.Services.AddScoped<EmotionEntriesRepository>();
 builder.Services.AddScoped<JwtTokenGenerator>();
 builder.Services.AddScoped<EmotionSeeder>();
 // Add DbContext to the DI container

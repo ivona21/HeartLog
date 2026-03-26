@@ -17,8 +17,18 @@ public class EmotionsRepository
     {
         return await _context.Emotions
             .AsNoTracking()
+            .Where(e => e.IsActive)
             .Include(e => e.Translations.Where(t => t.Locale == locale))
             .OrderBy(e => e.SortOrder)
+            .ToListAsync();
+    }
+
+    public async Task<List<Emotion>> GetActiveByKeysAsync(IEnumerable<string> keys)
+    {
+        var keyList = keys.ToList();
+
+        return await _context.Emotions
+            .Where(e => e.IsActive && keyList.Contains(e.Key))
             .ToListAsync();
     }
 }
