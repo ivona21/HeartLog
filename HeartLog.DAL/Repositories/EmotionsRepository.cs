@@ -22,4 +22,13 @@ public class EmotionsRepository
             .OrderBy(e => e.SortOrder)
             .ToListAsync();
     }
+
+    public async Task<List<Emotion>> GetActiveByKeysAsync(IEnumerable<string> keys)
+    {
+        var keyList = keys.ToList();
+
+        return await _context.Emotions
+            .Where(e => e.IsActive && keyList.Contains(e.Key))
+            .ToListAsync();
+    }
 }
