@@ -3,6 +3,7 @@ using System;
 using HeartLog.DAL.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace HeartLog.DAL.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260325090000_ResetUsersToGuidIds")]
+    partial class ResetUsersToGuidIds
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -56,66 +59,6 @@ namespace HeartLog.DAL.Migrations
                     b.HasIndex("ParentId", "SortOrder");
 
                     b.ToTable("Emotions");
-                });
-
-            modelBuilder.Entity("HeartLog.DAL.Models.EmotionEntry", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedNever()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Comment")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime>("OccurredAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId", "OccurredAt");
-
-                    b.ToTable("EmotionEntries");
-                });
-
-            modelBuilder.Entity("HeartLog.DAL.Models.EmotionEntryEmotion", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedNever()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("EmotionEntryId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("EmotionId")
-                        .HasColumnType("uuid");
-
-                    b.Property<bool>("IsPrimary")
-                        .HasColumnType("boolean");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("EmotionEntryId")
-                        .IsUnique()
-                        .HasFilter("\"IsPrimary\" = true");
-
-                    b.HasIndex("EmotionEntryId", "EmotionId")
-                        .IsUnique();
-
-                    b.HasIndex("EmotionId");
-
-                    b.ToTable("EmotionEntryEmotions");
                 });
 
             modelBuilder.Entity("HeartLog.DAL.Models.EmotionTranslation", b =>
@@ -164,7 +107,6 @@ namespace HeartLog.DAL.Migrations
             modelBuilder.Entity("HeartLog.DAL.Models.User", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedNever()
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
@@ -199,36 +141,6 @@ namespace HeartLog.DAL.Migrations
                     b.Navigation("Parent");
                 });
 
-            modelBuilder.Entity("HeartLog.DAL.Models.EmotionEntry", b =>
-                {
-                    b.HasOne("HeartLog.DAL.Models.User", "User")
-                        .WithMany("EmotionEntries")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("HeartLog.DAL.Models.EmotionEntryEmotion", b =>
-                {
-                    b.HasOne("HeartLog.DAL.Models.Emotion", "Emotion")
-                        .WithMany()
-                        .HasForeignKey("EmotionId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("HeartLog.DAL.Models.EmotionEntry", "EmotionEntry")
-                        .WithMany("EmotionEntryEmotions")
-                        .HasForeignKey("EmotionEntryId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Emotion");
-
-                    b.Navigation("EmotionEntry");
-                });
-
             modelBuilder.Entity("HeartLog.DAL.Models.EmotionTranslation", b =>
                 {
                     b.HasOne("HeartLog.DAL.Models.Emotion", "Emotion")
@@ -245,16 +157,6 @@ namespace HeartLog.DAL.Migrations
                     b.Navigation("Children");
 
                     b.Navigation("Translations");
-                });
-
-            modelBuilder.Entity("HeartLog.DAL.Models.EmotionEntry", b =>
-                {
-                    b.Navigation("EmotionEntryEmotions");
-                });
-
-            modelBuilder.Entity("HeartLog.DAL.Models.User", b =>
-                {
-                    b.Navigation("EmotionEntries");
                 });
 #pragma warning restore 612, 618
         }

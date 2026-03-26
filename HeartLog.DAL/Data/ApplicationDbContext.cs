@@ -18,11 +18,17 @@ public class ApplicationDbContext: DbContext
     
     public DbSet<EmotionTranslation> EmotionTranslations { get; set; } = null!;
 
+    public DbSet<EmotionEntry> EmotionEntries { get; set; } = null!;
+
+    public DbSet<EmotionEntryEmotion> EmotionEntryEmotions { get; set; } = null!;
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
         modelBuilder.ApplyConfiguration(new UserConfiguration());
         modelBuilder.ApplyConfiguration(new EmotionConfiguration());
         modelBuilder.ApplyConfiguration(new EmotionTranslationConfiguration());
+        modelBuilder.ApplyConfiguration(new EmotionEntryConfiguration());
+        modelBuilder.ApplyConfiguration(new EmotionEntryEmotionConfiguration());
     }
 }

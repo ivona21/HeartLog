@@ -156,7 +156,7 @@ public static class EmotionSeedData
                 ]),
                 new("love.connected", "Connected", Children:
                 [
-                    new("love.connected.close", "Close"),
+                    new("love.connected.accepted", "Accepted"),
                     new("love.connected.trusting", "Trusting")
                 ])
             ]),
