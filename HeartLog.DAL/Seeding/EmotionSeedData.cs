@@ -139,11 +139,6 @@ public static class EmotionSeedData
                     new("love.caring.compassionate", "Compassionate"),
                     new("love.caring.supportive", "Supportive")
                 ]),
-                new("love.grateful", "Grateful", Children:
-                [
-                    new("love.grateful.thankful", "Thankful"),
-                    new("love.grateful.blessed", "Blessed")
-                ]),
                 new("love.tender", "Tender", Children:
                 [
                     new("love.tender.gentle", "Gentle"),
@@ -184,7 +179,12 @@ public static class EmotionSeedData
                 [
                     new("calm.peaceful.tranquil", "Tranquil"),
                     new("calm.peaceful.serene", "Serene")
-                ])
+                ]),
+                new("calm.grateful", "Grateful", Children:
+                [
+                    new("calm.grateful.thankful", "Thankful"),
+                    new("calm.grateful.blessed", "Blessed")
+                ]),
             ]),
         new(
             "joy",
