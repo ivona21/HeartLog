@@ -86,7 +86,15 @@ public static class EmotionSeedData
                 [
                     new("fear.terrified.panicked", "Panicked"),
                     new("fear.terrified.horrified", "Horrified")
-                ])
+                ]),
+                new ("fear.trapped", "Trapped", Children: [
+                    new ("fear.trapped.stuck", "Stuck"),
+                    new ("fear.trapped.cornered", "Cornered")
+                ]),
+                new ("fear.threatened", "Threatened", Children: [
+                    new ("fear.threatened.vulnerable", "Vulnerable"),
+                    new ("fear.threatened.at-risk", "At risk")
+                ]),
             ]),
         new(
             "anger",
