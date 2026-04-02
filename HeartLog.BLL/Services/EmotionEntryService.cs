@@ -1,25 +1,62 @@
 using HeartLog.BLL.Exceptions;
 using HeartLog.BLL.Interfaces;
+using HeartLog.DAL.Interfaces;
 using HeartLog.BLL.Models;
 using HeartLog.DAL.Models;
-using HeartLog.DAL.Repositories;
 
 namespace HeartLog.BLL;
 
 public class EmotionEntryService : IEmotionEntryService
 {
-    private readonly UserRepository _userRepository;
-    private readonly EmotionsRepository _emotionsRepository;
-    private readonly EmotionEntriesRepository _emotionEntriesRepository;
+    private readonly IUserRepository _userRepository;
+    private readonly IEmotionsRepository _emotionsRepository;
+    private readonly IEmotionEntriesRepository _emotionEntriesRepository;
 
     public EmotionEntryService(
-        UserRepository userRepository,
-        EmotionsRepository emotionsRepository,
-        EmotionEntriesRepository emotionEntriesRepository)
+        IUserRepository userRepository,
+        IEmotionsRepository emotionsRepository,
+        IEmotionEntriesRepository emotionEntriesRepository)
     {
         _userRepository = userRepository;
         _emotionsRepository = emotionsRepository;
         _emotionEntriesRepository = emotionEntriesRepository;
+    }
+
+    public async Task<IReadOnlyList<EmotionEntryResult>> GetAllByUserAsync(
+        string userEmail,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(userEmail))
+        {
+            throw new UnauthorizedAccessException("Authenticated user email was not found.");
+        }
+
+        var user = await _userRepository.GetByEmailAsync(userEmail);
+        if (user is null)
+        {
+            throw new UnauthorizedAccessException("Authenticated user could not be resolved.");
+        }
+
+        var entries = await _emotionEntriesRepository.GetAllByUserIdAsync(user.Id, cancellationToken);
+
+        return entries
+            .Select(entry => new EmotionEntryResult
+            {
+                EntryId = entry.Id,
+                Comment = entry.Comment,
+                OccurredAt = entry.OccurredAt,
+                CreatedAt = entry.CreatedAt,
+                SelectedEmotions = entry.EmotionEntryEmotions
+                    .OrderByDescending(entryEmotion => entryEmotion.IsPrimary)
+                    .ThenBy(entryEmotion => entryEmotion.Emotion.Key)
+                    .Select(entryEmotion => new SelectedEmotion
+                    {
+                        EmotionKey = entryEmotion.Emotion.Key,
+                        IsPrimary = entryEmotion.IsPrimary
+                    })
+                    .ToList()
+            })
+            .ToList();
     }
 
     public async Task<EmotionEntryResult> CreateEmotionEntryAsync(
