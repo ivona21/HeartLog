@@ -1,10 +1,11 @@
 using HeartLog.DAL.Data;
+using HeartLog.DAL.Interfaces;
 using HeartLog.DAL.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace HeartLog.DAL.Repositories;
 
-public class EmotionEntriesRepository
+public class EmotionEntriesRepository : IEmotionEntriesRepository
 {
     private readonly ApplicationDbContext _context;
 
@@ -34,5 +35,17 @@ public class EmotionEntriesRepository
         return await _context.EmotionEntries
             .Where(entry => entry.UserId == userId)
             .MaxAsync(entry => (DateTime?)entry.OccurredAt, cancellationToken);
+    }
+
+    public async Task<List<EmotionEntry>> GetAllByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        return await _context.EmotionEntries
+            .AsNoTracking()
+            .Where(entry => entry.UserId == userId)
+            .Include(entry => entry.EmotionEntryEmotions)
+            .ThenInclude(entryEmotion => entryEmotion.Emotion)
+            .OrderByDescending(entry => entry.OccurredAt)
+            .ThenByDescending(entry => entry.CreatedAt)
+            .ToListAsync(cancellationToken);
     }
 }

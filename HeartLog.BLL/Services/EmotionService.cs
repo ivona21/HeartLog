@@ -1,14 +1,14 @@
 using HeartLog.BLL.Interfaces;
 using HeartLog.BLL.Models;
-using HeartLog.DAL.Repositories;
+using HeartLog.DAL.Interfaces;
 
 namespace HeartLog.BLL;
 
 public class EmotionService : IEmotionService
 {
-    private readonly EmotionsRepository _emotionsRepository;
+    private readonly IEmotionsRepository _emotionsRepository;
 
-    public EmotionService(EmotionsRepository emotionsRepository)
+    public EmotionService(IEmotionsRepository emotionsRepository)
     {
         _emotionsRepository = emotionsRepository;
     }

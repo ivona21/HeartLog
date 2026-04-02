@@ -5,6 +5,11 @@ namespace HeartLog.Api.Mappers;
 
 public static class EmotionEntryMapper
 {
+    public static List<EmotionEntryResponse> ToDto(this IEnumerable<EmotionEntryResult> results)
+    {
+        return results.Select(ToDto).ToList();
+    }
+
     public static EmotionEntryResponse ToDto(this EmotionEntryResult result)
     {
         return new EmotionEntryResponse

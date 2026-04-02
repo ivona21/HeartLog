@@ -1,8 +1,8 @@
 using HeartLog.BLL.Exceptions;
 using HeartLog.BLL.Interfaces;
 using HeartLog.BLL.Services;
+using HeartLog.DAL.Interfaces;
 using HeartLog.DAL.Models;
-using HeartLog.DAL.Repositories;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 
@@ -10,12 +10,12 @@ namespace HeartLog.BLL;
 
 public class UserService: IUserService
 {
-    private readonly UserRepository _userRepository;
+    private readonly IUserRepository _userRepository;
     private readonly ILogger<UserService> _logger;
     private readonly PasswordHasher<User> _passwordHasher;
     private readonly JwtTokenGenerator _tokenGenerator;
     
-    public UserService(UserRepository userRepository, ILogger<UserService> logger, JwtTokenGenerator tokenGenerator)
+    public UserService(IUserRepository userRepository, ILogger<UserService> logger, JwtTokenGenerator tokenGenerator)
     {
         _userRepository = userRepository;
         _logger = logger;

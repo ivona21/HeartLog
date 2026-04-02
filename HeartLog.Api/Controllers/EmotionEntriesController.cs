@@ -19,6 +19,23 @@ public class EmotionEntriesController : ControllerBase
         _emotionEntryService = emotionEntryService;
     }
 
+    [HttpGet]
+    public async Task<IActionResult> GetEmotionEntries(CancellationToken cancellationToken)
+    {
+        var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrWhiteSpace(userEmail))
+        {
+            return Unauthorized(new ErrorResponse { Message = "Authenticated user email was not found." });
+        }
+
+        var entries = await _emotionEntryService.GetAllByUserAsync(userEmail, cancellationToken);
+
+        return Ok(new ApiResponse<IEnumerable<EmotionEntryResponse>>(
+            Success: true,
+            Message: "Emotion entries retrieved successfully",
+            Data: entries.ToDto()));
+    }
+
     [HttpPost]
     public async Task<IActionResult> CreateEmotionEntry(CreateEmotionEntryRequest request, CancellationToken cancellationToken)
     {
