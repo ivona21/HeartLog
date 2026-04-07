@@ -48,6 +48,24 @@ public class AuthController : ControllerBase
     }
 
     [Authorize]
+    [HttpGet("me")]
+    public async Task<ActionResult<ApiResponse<UserMeResponseDto>>> GetCurrentUser()
+    {
+        var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrWhiteSpace(userEmail))
+        {
+            return Unauthorized(new ErrorResponse { Message = "Authenticated user email was not found." });
+        }
+
+        var currentUser = await _userService.GetCurrentUserAsync(userEmail);
+
+        return Ok(new ApiResponse<UserMeResponseDto>(
+            Success: true,
+            Message: "Current user retrieved successfully",
+            Data: UserMapper.ToDto(currentUser)));
+    }
+
+    [Authorize]
     [HttpGet("confidential")]
     public async Task<ActionResult<ApiResponse>> GetSomethingConfidential()
     {
