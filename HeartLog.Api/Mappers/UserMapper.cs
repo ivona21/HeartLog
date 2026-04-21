@@ -11,7 +11,6 @@ public static class UserMapper
         return new User
         {
             Email = dto.Email,
-            Username = dto.Username,
             CreatedAt = DateTime.UtcNow
         };
     }

@@ -181,7 +181,6 @@ namespace HeartLog.DAL.Migrations
                         .HasColumnType("character varying(100)");
 
                     b.Property<string>("Username")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.HasKey("Id");
