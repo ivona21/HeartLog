@@ -34,14 +34,6 @@ public class UserService: IUserService
             throw new ExistingEmailException(user.Email);
         }
         
-        // check if username is taken
-        User userWithSameUsername = await _userRepository.GetByUsername(user.Username);
-        if (userWithSameUsername != null)
-        {
-            _logger.LogInformation("Attempted registration with existing username: {Username} from an email {Email}", user.Username, user.Email);
-            throw new ExistingUsernameException(user.Username);
-        }
-
         user.PasswordHash = _passwordHasher.HashPassword(user, password);
         
         // call repository to save user
