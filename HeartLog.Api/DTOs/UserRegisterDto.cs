@@ -10,10 +10,6 @@ public class UserRegisterDto
     public string Email { get; set; } = string.Empty;
     
     [Required]
-    [MaxLength(100)]
-    public string Username { get; set; } = string.Empty;
-    
-    [Required]
     [PasswordComplexity(MinimumLength = 8)]
     public string Password { get; set; } = string.Empty;
 }

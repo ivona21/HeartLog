@@ -1,4 +1,5 @@
 using HeartLog.Api.DTOs;
+using HeartLog.BLL.Models;
 using HeartLog.DAL.Models;
 
 namespace HeartLog.Api.Mappers;
@@ -10,8 +11,17 @@ public static class UserMapper
         return new User
         {
             Email = dto.Email,
-            Username = dto.Username,
             CreatedAt = DateTime.UtcNow
+        };
+    }
+
+    public static UserMeResponseDto ToDto(CurrentUserResult result)
+    {
+        return new UserMeResponseDto
+        {
+            Id = result.Id.ToString(),
+            Username = result.Username,
+            Email = result.Email
         };
     }
 }
