@@ -55,9 +55,6 @@ builder.Services.AddScoped<IEmotionsRepository, EmotionsRepository>();
 builder.Services.AddScoped<IEmotionEntriesRepository, EmotionEntriesRepository>();
 builder.Services.AddScoped<JwtTokenGenerator>();
 builder.Services.AddScoped<EmotionSeeder>();
-// Add DbContext to the DI container
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseNpgsql(Environment.GetEnvironmentVariable("DATABASE_URL")));
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
@@ -90,7 +87,8 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+                       ?? throw new InvalidOperationException("Connection string 'DefaultConnection' is missing.");
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(connectionString));
