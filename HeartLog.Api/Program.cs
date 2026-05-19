@@ -13,6 +13,7 @@ using HeartLog.Api.Middleware;
 using HeartLog.BLL.Services;
 using HeartLog.DAL.Seeding;
 using HeartLog.DAL.Interfaces;
+using HeartLog.DAL.Supabase;
 using Microsoft.AspNetCore.Mvc;
 
 DotNetEnv.Env.Load();
@@ -55,6 +56,7 @@ builder.Services.AddScoped<IEmotionsRepository, EmotionsRepository>();
 builder.Services.AddScoped<IEmotionEntriesRepository, EmotionEntriesRepository>();
 builder.Services.AddScoped<JwtTokenGenerator>();
 builder.Services.AddScoped<EmotionSeeder>();
+builder.Services.AddScoped<SupabaseAuthService>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
@@ -133,6 +135,8 @@ builder.Services.AddCors(options =>
 // Add services
 builder.Services.AddAuthorization();
 
+builder.Services.Configure<SupabaseSettings>(builder.Configuration.GetSection("Supabase"));
+
 builder.WebHost.ConfigureKestrel(options =>
 {
     options.ListenAnyIP(80); // <--- This forces the app to listen on port 80
@@ -169,5 +173,14 @@ app.UseAuthorization();
 
 app.MapGet("/ping", () => Results.Ok("pong"));
 app.MapGet("/", () => "HeartLog API is running 🚀");
+if (app.Environment.IsDevelopment())
+{
+    app.MapGet("/test-supabase", async (SupabaseAuthService authService) =>
+    {
+        await authService.TestConnectionAsync();
+        return Results.Ok("Supabase connection successful!");
+    });
+}
+
 app.MapControllers();
 app.Run();
