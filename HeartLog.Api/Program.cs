@@ -10,10 +10,11 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models; // for UseNpgsql
 
 using HeartLog.Api.Middleware;
+using HeartLog.BLL.Models.Auth;
 using HeartLog.BLL.Services;
+using HeartLog.BLL.Services.Auth;
 using HeartLog.DAL.Seeding;
 using HeartLog.DAL.Interfaces;
-using HeartLog.DAL.Supabase;
 using Microsoft.AspNetCore.Mvc;
 
 DotNetEnv.Env.Load();
@@ -56,7 +57,7 @@ builder.Services.AddScoped<IEmotionsRepository, EmotionsRepository>();
 builder.Services.AddScoped<IEmotionEntriesRepository, EmotionEntriesRepository>();
 builder.Services.AddScoped<JwtTokenGenerator>();
 builder.Services.AddScoped<EmotionSeeder>();
-builder.Services.AddScoped<SupabaseAuthService>();
+builder.Services.AddScoped<IExternalAuthService, SupabaseAuthService>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
@@ -175,7 +176,7 @@ app.MapGet("/ping", () => Results.Ok("pong"));
 app.MapGet("/", () => "HeartLog API is running 🚀");
 if (app.Environment.IsDevelopment())
 {
-    app.MapGet("/test-supabase", async (SupabaseAuthService authService) =>
+    app.MapGet("/test-supabase", async (IExternalAuthService authService) =>
     {
         await authService.TestConnectionAsync();
         return Results.Ok("Supabase connection successful!");
