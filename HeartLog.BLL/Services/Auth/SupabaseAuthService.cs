@@ -19,4 +19,14 @@ public class SupabaseAuthService : IExternalAuthService
         var client = new Client(_settings.ProjectUrl, _settings.SecretKey);
         await client.InitializeAsync();
     }
+
+    public Task<ExternalAuthSession> RegisterAsync(string email, string password)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<ExternalAuthSession> LoginAsync(string email, string password)
+    {
+        throw new NotImplementedException();
+    }
 }
