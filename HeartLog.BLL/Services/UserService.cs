@@ -13,13 +13,19 @@ public class UserService: IUserService
 {
     private readonly IUserRepository _userRepository;
     private readonly ILogger<UserService> _logger;
+    private readonly IExternalAuthService _externalAuthService;
     private readonly PasswordHasher<User> _passwordHasher;
     private readonly JwtTokenGenerator _tokenGenerator;
     
-    public UserService(IUserRepository userRepository, ILogger<UserService> logger, JwtTokenGenerator tokenGenerator)
+    public UserService(
+        IUserRepository userRepository,
+        ILogger<UserService> logger,
+        IExternalAuthService externalAuthService,
+        JwtTokenGenerator tokenGenerator)
     {
         _userRepository = userRepository;
         _logger = logger;
+        _externalAuthService = externalAuthService;
         _passwordHasher = new PasswordHasher<User>();
         _tokenGenerator = tokenGenerator;
     }
@@ -33,9 +39,13 @@ public class UserService: IUserService
             _logger.LogInformation("Attempted registration with existing email: {Email}", user.Email);
             throw new ExistingEmailException(user.Email);
         }
-        
-        user.PasswordHash = _passwordHasher.HashPassword(user, password);
-        
+
+        var authUser = await _externalAuthService.RegisterAsync(user.Email, password);
+
+        user.Email = authUser.Email;
+        user.SupabaseUserId = authUser.ProviderUserId;
+        user.PasswordHash = string.Empty;
+
         // call repository to save user
         await _userRepository.AddUserAsync(user);
         await _userRepository.SaveChangesAsync();
