@@ -19,12 +19,12 @@ public class SupabaseAuthService : IExternalAuthService
         await CreateClientAsync();
     }
 
-    public async Task<ExternalAuthUser> RegisterAsync(string email, string password)
+    public async Task<ExternalAuthSession> RegisterAsync(string email, string password)
     {
         var client = await CreateClientAsync();
         var session = await client.Auth.SignUp(email, password);
 
-        return ToExternalAuthUser(session);
+        return ToExternalAuthSession(session);
     }
 
     public Task<ExternalAuthSession> LoginAsync(string email, string password)
@@ -40,11 +40,11 @@ public class SupabaseAuthService : IExternalAuthService
         return client;
     }
 
-    private static ExternalAuthUser ToExternalAuthUser(Supabase.Gotrue.Session? session)
+    private static ExternalAuthSession ToExternalAuthSession(Supabase.Gotrue.Session? session)
     {
         if (session is null)
         {
-            throw new InvalidOperationException("Supabase registration did not return a user.");
+            throw new InvalidOperationException("Supabase registration did not return a session.");
         }
 
         if (session.User is null)
@@ -62,10 +62,21 @@ public class SupabaseAuthService : IExternalAuthService
             throw new InvalidOperationException("Supabase registration did not return a user email.");
         }
 
-        return new ExternalAuthUser
+        if (string.IsNullOrWhiteSpace(session.AccessToken))
         {
-            ProviderUserId = providerUserId,
-            Email = session.User.Email
+            throw new InvalidOperationException("Supabase registration did not return an access token.");
+        }
+
+        return new ExternalAuthSession
+        {
+            AccessToken = session.AccessToken,
+            RefreshToken = session.RefreshToken,
+            ExpiresAt = session.ExpiresAt(),
+            User = new ExternalAuthUser
+            {
+                ProviderUserId = providerUserId,
+                Email = session.User.Email
+            }
         };
     }
 }
