@@ -40,6 +40,10 @@ public class ExceptionHandlingMiddleware
                 context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
                 response.Message = "Unable to register. Please check your input or try logging in if you already have an account.";
                 break;
+            case ExternalAuthException:
+                context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+                response.Message = "Unable to complete registration. Please try again.";
+                break;
             case ExistingUsernameException:
                 context.Response.StatusCode = (int)HttpStatusCode.Conflict;
                 response.Message = exception.Message;

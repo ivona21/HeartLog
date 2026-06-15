@@ -1,6 +1,7 @@
 using HeartLog.BLL.Exceptions;
 using HeartLog.BLL.Interfaces;
 using HeartLog.BLL.Models;
+using HeartLog.BLL.Models.Auth;
 using HeartLog.BLL.Services;
 using HeartLog.DAL.Interfaces;
 using HeartLog.DAL.Models;
@@ -30,7 +31,7 @@ public class UserService: IUserService
         _tokenGenerator = tokenGenerator;
     }
     
-    public async Task RegisterUserAsync(User user, string password)
+    public async Task<ExternalAuthSession> RegisterUserAsync(User user, string password)
     {
         // check if user already exists
         var existingUser = await _userRepository.GetByEmailAsync(user.Email);
@@ -40,15 +41,17 @@ public class UserService: IUserService
             throw new ExistingEmailException(user.Email);
         }
 
-        var authUser = await _externalAuthService.RegisterAsync(user.Email, password);
+        var session = await _externalAuthService.RegisterAsync(user.Email, password);
 
-        user.Email = authUser.Email;
-        user.SupabaseUserId = authUser.ProviderUserId;
+        user.Email = session.User.Email;
+        user.SupabaseUserId = session.User.ProviderUserId;
         user.PasswordHash = string.Empty;
 
         // call repository to save user
         await _userRepository.AddUserAsync(user);
         await _userRepository.SaveChangesAsync();
+
+        return session;
     }
 
     public async Task<string> LoginUserAsync(string email, string password)

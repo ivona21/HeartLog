@@ -20,12 +20,15 @@ public class AuthController : ControllerBase
 
     [AllowAnonymous]
     [HttpPost("register")]
-    public async Task<ActionResult<ApiResponse>> Register(UserRegisterDto userDto)
+    public async Task<ActionResult<ApiResponse<AuthSessionResponseDto>>> Register(UserRegisterDto userDto)
     {
         User user = UserMapper.ToEntity(userDto);
-        await _userService.RegisterUserAsync(user, userDto.Password);
+        var session = await _userService.RegisterUserAsync(user, userDto.Password);
 
-        return Ok(new ApiResponse(Success: true, Message: "User registered successfully"));
+        return Ok(new ApiResponse<AuthSessionResponseDto>(
+            Success: true,
+            Message: "User registered successfully",
+            Data: UserMapper.ToDto(session)));
     }
 
     [AllowAnonymous]

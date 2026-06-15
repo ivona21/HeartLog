@@ -1,3 +1,4 @@
+using HeartLog.BLL.Exceptions;
 using HeartLog.BLL.Interfaces;
 using HeartLog.BLL.Models.Auth;
 using Microsoft.Extensions.Options;
@@ -19,12 +20,23 @@ public class SupabaseAuthService : IExternalAuthService
         await CreateClientAsync();
     }
 
-    public async Task<ExternalAuthUser> RegisterAsync(string email, string password)
+    public async Task<ExternalAuthSession> RegisterAsync(string email, string password)
     {
-        var client = await CreateClientAsync();
-        var session = await client.Auth.SignUp(email, password);
+        try
+        {
+            var client = await CreateClientAsync();
+            var session = await client.Auth.SignUp(email, password);
 
-        return ToExternalAuthUser(session);
+            return ToExternalAuthSession(session);
+        }
+        catch (ExternalAuthException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            throw new ExternalAuthException("Supabase registration failed.", ex);
+        }
     }
 
     public Task<ExternalAuthSession> LoginAsync(string email, string password)
@@ -40,32 +52,43 @@ public class SupabaseAuthService : IExternalAuthService
         return client;
     }
 
-    private static ExternalAuthUser ToExternalAuthUser(Supabase.Gotrue.Session? session)
+    private static ExternalAuthSession ToExternalAuthSession(Supabase.Gotrue.Session? session)
     {
         if (session is null)
         {
-            throw new InvalidOperationException("Supabase registration did not return a user.");
+            throw new ExternalAuthException("Supabase registration did not return a session.");
         }
 
         if (session.User is null)
         {
-            throw new InvalidOperationException("Supabase registration did not return a user.");
+            throw new ExternalAuthException("Supabase registration did not return a user.");
         }
 
         if (!Guid.TryParse(session.User.Id, out var providerUserId))
         {
-            throw new InvalidOperationException("Supabase registration returned an invalid user id.");
+            throw new ExternalAuthException("Supabase registration returned an invalid user id.");
         }
 
         if (string.IsNullOrWhiteSpace(session.User.Email))
         {
-            throw new InvalidOperationException("Supabase registration did not return a user email.");
+            throw new ExternalAuthException("Supabase registration did not return a user email.");
         }
 
-        return new ExternalAuthUser
+        if (string.IsNullOrWhiteSpace(session.AccessToken))
         {
-            ProviderUserId = providerUserId,
-            Email = session.User.Email
+            throw new ExternalAuthException("Supabase registration did not return an access token. Confirm email may be enabled.");
+        }
+
+        return new ExternalAuthSession
+        {
+            AccessToken = session.AccessToken,
+            RefreshToken = session.RefreshToken,
+            ExpiresAt = session.ExpiresAt(),
+            User = new ExternalAuthUser
+            {
+                ProviderUserId = providerUserId,
+                Email = session.User.Email
+            }
         };
     }
 }
