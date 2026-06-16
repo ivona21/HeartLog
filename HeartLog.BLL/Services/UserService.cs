@@ -45,7 +45,6 @@ public class UserService: IUserService
 
         user.Email = session.User.Email;
         user.SupabaseUserId = session.User.ProviderUserId;
-        user.PasswordHash = string.Empty;
 
         // call repository to save user
         await _userRepository.AddUserAsync(user);
@@ -60,6 +59,12 @@ public class UserService: IUserService
         if (existingUser == null)
         {
             _logger.LogInformation("Login attempt with non-existing email: {Email}", email);
+            throw new UnauthorizedAccessException("Invalid email or password.");
+        }
+
+        if (string.IsNullOrWhiteSpace(existingUser.PasswordHash))
+        {
+            _logger.LogInformation("Local login attempt for user without local password hash: {Email}", email);
             throw new UnauthorizedAccessException("Invalid email or password.");
         }
         
