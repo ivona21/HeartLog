@@ -63,7 +63,12 @@ Goal: use Supabase only for authentication, keep application users in the HeartL
 
 9. Validate Supabase JWTs in API
    - Configure JWT bearer validation for Supabase issuer and signing keys.
-   - Use Supabase JWT `sub` claim as external user id.
+   - Current Supabase project uses the new JWT Signing Keys system with an ECC P-256 key (`ES256`), not the legacy shared JWT secret.
+   - Derive issuer from `Supabase:ProjectUrl` as `{ProjectUrl}/auth/v1`.
+   - Load public signing keys from Supabase JWKS at `{ProjectUrl}/auth/v1/.well-known/jwks.json`.
+   - Validate audience as `Supabase:JwtAudience`, defaulting to `authenticated`.
+   - Do not use the legacy JWT secret for API bearer-token validation.
+   - Preserve the raw Supabase JWT `sub` claim; step 10 uses it as the external user id.
    - Verify: endpoint with Supabase token returns 200, missing/invalid token returns 401.
 
 10. Add current user resolution
