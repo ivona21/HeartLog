@@ -5,11 +5,11 @@ namespace HeartLog.BLL.Interfaces;
 public interface IEmotionEntryService
 {
     Task<IReadOnlyList<EmotionEntryResult>> GetAllByUserAsync(
-        string userEmail,
+        Guid userId,
         CancellationToken cancellationToken = default);
 
     Task<EmotionEntryResult> CreateEmotionEntryAsync(
-        string userEmail,
+        Guid userId,
         IReadOnlyList<string> emotionKeys,
         string primaryEmotionKey,
         string? comment,
@@ -17,6 +17,6 @@ public interface IEmotionEntryService
         CancellationToken cancellationToken = default);
 
     Task<EmotionEntriesSummary> GetSummaryAsync(
-        string userEmail,
+        Guid userId,
         CancellationToken cancellationToken = default);
 }

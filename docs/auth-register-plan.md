@@ -72,9 +72,10 @@ Goal: use Supabase only for authentication, keep application users in the HeartL
    - Verify: endpoint with Supabase token returns 200, missing/invalid token returns 401.
 
 10. Add current user resolution
-    - Add a service that reads authenticated `sub`, parses Supabase user id, and loads local `User`.
-    - Update `/api/auth/me` to use Supabase id instead of email claim.
-    - Verify: `/api/auth/me` returns the local HeartLog user for a Supabase token.
+    - Add `ICurrentUserService` that reads authenticated `sub`, parses Supabase user id, and loads local `User` by `SupabaseUserId`.
+    - Update `/api/auth/me` to use the current-user service instead of email claims.
+    - Update user-scoped endpoints to resolve the local user from Supabase `sub` and use local `User.Id` instead of email as identity.
+    - Verify: `/api/auth/me` and emotion-entry endpoints return data for the local HeartLog user when called with a Supabase token.
 
 11. Update login flow
     - `POST /api/auth/login` calls Supabase login and returns Supabase session token.
@@ -86,6 +87,17 @@ Goal: use Supabase only for authentication, keep application users in the HeartL
     - Remove local password verification.
     - Rename DTOs if needed so response names do not imply local JWTs.
     - Verify: no references to old token generator/password hash path remain.
+
+13. Document frontend auth integration
+    - Add frontend-facing documentation for the complete auth flow after registration/login cleanup is done.
+    - Explain that the frontend sends only the Supabase access token for user-owned API calls, not a user id.
+    - Document registration flow: call `POST /api/auth/register`, store/use returned Supabase session, then optionally call `GET /api/auth/me` to bootstrap HeartLog user state.
+    - Document login flow: call `POST /api/auth/login`, store/use returned Supabase session, then call `GET /api/auth/me` to load the local HeartLog user.
+    - Document app startup flow: restore Supabase session, call `GET /api/auth/me` with `Authorization: Bearer {accessToken}`, render authenticated app only if it succeeds.
+    - Document user-owned data flow: call endpoints like `GET /api/emotion-entries` with bearer token only; backend resolves local `User.Id` from token `sub`.
+    - Document expected auth failures: missing/expired/invalid token returns 401; valid Supabase token with no local HeartLog user also returns 401 until account repair/linking exists.
+    - Document token refresh responsibility: frontend should refresh Supabase session/access token using Supabase client behavior before calling the API.
+    - Verify: frontend developer can implement register, login, app bootstrap, logout, and user-owned API calls from the documentation without reading backend code.
 
 ## Later
 

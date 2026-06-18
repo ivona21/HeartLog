@@ -8,36 +8,27 @@ namespace HeartLog.BLL;
 
 public class EmotionEntryService : IEmotionEntryService
 {
-    private readonly IUserRepository _userRepository;
     private readonly IEmotionsRepository _emotionsRepository;
     private readonly IEmotionEntriesRepository _emotionEntriesRepository;
 
     public EmotionEntryService(
-        IUserRepository userRepository,
         IEmotionsRepository emotionsRepository,
         IEmotionEntriesRepository emotionEntriesRepository)
     {
-        _userRepository = userRepository;
         _emotionsRepository = emotionsRepository;
         _emotionEntriesRepository = emotionEntriesRepository;
     }
 
     public async Task<IReadOnlyList<EmotionEntryResult>> GetAllByUserAsync(
-        string userEmail,
+        Guid userId,
         CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(userEmail))
+        if (userId == Guid.Empty)
         {
-            throw new UnauthorizedAccessException("Authenticated user email was not found.");
+            throw new UnauthorizedAccessException("Authenticated user id was not found.");
         }
 
-        var user = await _userRepository.GetByEmailAsync(userEmail);
-        if (user is null)
-        {
-            throw new UnauthorizedAccessException("Authenticated user could not be resolved.");
-        }
-
-        var entries = await _emotionEntriesRepository.GetAllByUserIdAsync(user.Id, cancellationToken);
+        var entries = await _emotionEntriesRepository.GetAllByUserIdAsync(userId, cancellationToken);
 
         return entries
             .Select(entry => new EmotionEntryResult
@@ -60,16 +51,16 @@ public class EmotionEntryService : IEmotionEntryService
     }
 
     public async Task<EmotionEntryResult> CreateEmotionEntryAsync(
-        string userEmail,
+        Guid userId,
         IReadOnlyList<string> emotionKeys,
         string primaryEmotionKey,
         string? comment,
         DateTime? occurredAt,
         CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(userEmail))
+        if (userId == Guid.Empty)
         {
-            throw new UnauthorizedAccessException("Authenticated user email was not found.");
+            throw new UnauthorizedAccessException("Authenticated user id was not found.");
         }
 
         if (emotionKeys.Count == 0)
@@ -104,12 +95,6 @@ public class EmotionEntryService : IEmotionEntryService
             throw new InvalidEmotionEntryException("Primary emotion key must be one of the selected emotions.");
         }
 
-        var user = await _userRepository.GetByEmailAsync(userEmail);
-        if (user is null)
-        {
-            throw new UnauthorizedAccessException("Authenticated user could not be resolved.");
-        }
-
         var emotions = await _emotionsRepository.GetActiveByKeysAsync(normalizedEmotionKeys);
         if (emotions.Count != normalizedEmotionKeys.Count)
         {
@@ -122,7 +107,7 @@ public class EmotionEntryService : IEmotionEntryService
 
         var emotionEntry = new EmotionEntry
         {
-            UserId = user.Id,
+            UserId = userId,
             Comment = comment,
             OccurredAt = entryOccurredAt,
             CreatedAt = entryCreatedAt,
@@ -157,22 +142,16 @@ public class EmotionEntryService : IEmotionEntryService
     }
 
     public async Task<EmotionEntriesSummary> GetSummaryAsync(
-        string userEmail,
+        Guid userId,
         CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(userEmail))
+        if (userId == Guid.Empty)
         {
-            throw new UnauthorizedAccessException("Authenticated user email was not found.");
+            throw new UnauthorizedAccessException("Authenticated user id was not found.");
         }
 
-        var user = await _userRepository.GetByEmailAsync(userEmail);
-        if (user is null)
-        {
-            throw new UnauthorizedAccessException("Authenticated user could not be resolved.");
-        }
-
-        var totalEntries = await _emotionEntriesRepository.CountByUserIdAsync(user.Id, cancellationToken);
-        var latestOccurredAt = await _emotionEntriesRepository.GetLatestOccurredAtByUserIdAsync(user.Id, cancellationToken);
+        var totalEntries = await _emotionEntriesRepository.CountByUserIdAsync(userId, cancellationToken);
+        var latestOccurredAt = await _emotionEntriesRepository.GetLatestOccurredAtByUserIdAsync(userId, cancellationToken);
 
         return new EmotionEntriesSummary
         {

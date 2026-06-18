@@ -26,6 +26,16 @@ public static class UserMapper
         };
     }
 
+    public static UserMeResponseDto ToDto(User user)
+    {
+        return new UserMeResponseDto
+        {
+            Id = user.Id.ToString(),
+            Username = user.Username,
+            Email = user.Email
+        };
+    }
+
     public static AuthSessionResponseDto ToDto(ExternalAuthSession session)
     {
         return new AuthSessionResponseDto

@@ -54,6 +54,7 @@ builder.Services.AddControllers()
         };
     });
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<IItemService, ItemService>();
 builder.Services.AddScoped<IEmotionService, EmotionService>();
 builder.Services.AddScoped<IEmotionEntryService, EmotionEntryService>();
