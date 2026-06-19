@@ -12,10 +12,14 @@ namespace HeartLog.Api.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly IUserService _userService;
+    private readonly ICurrentUserService _currentUserService;
 
-    public AuthController(IUserService userService)
+    public AuthController(
+        IUserService userService,
+        ICurrentUserService currentUserService)
     {
         _userService = userService;
+        _currentUserService = currentUserService;
     }
 
     [AllowAnonymous]
@@ -54,13 +58,7 @@ public class AuthController : ControllerBase
     [HttpGet("me")]
     public async Task<ActionResult<ApiResponse<UserMeResponseDto>>> GetCurrentUser()
     {
-        var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (string.IsNullOrWhiteSpace(userEmail))
-        {
-            return Unauthorized(new ErrorResponse { Message = "Authenticated user email was not found." });
-        }
-
-        var currentUser = await _userService.GetCurrentUserAsync(userEmail);
+        var currentUser = await _currentUserService.GetCurrentUserAsync(User);
 
         return Ok(new ApiResponse<UserMeResponseDto>(
             Success: true,
