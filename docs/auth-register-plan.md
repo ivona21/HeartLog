@@ -79,7 +79,9 @@ Goal: use Supabase only for authentication, keep application users in the HeartL
 
 11. Update login flow
     - `POST /api/auth/login` calls Supabase login and returns Supabase session token.
-    - Ensure local user exists for the returned Supabase id; decide whether to auto-repair missing local records or fail.
+    - Return the same auth session DTO shape as registration.
+    - Ensure local user exists for the returned Supabase id.
+    - Fail with 401 for now if Supabase login succeeds but the local HeartLog user is missing; account repair/linking is a later concern.
     - Verify: login token works against authorized API endpoints.
 
 12. Cleanup old local JWT auth
@@ -88,7 +90,19 @@ Goal: use Supabase only for authentication, keep application users in the HeartL
     - Rename DTOs if needed so response names do not imply local JWTs.
     - Verify: no references to old token generator/password hash path remain.
 
-13. Document frontend auth integration
+13. Migrate old local-password users with password reset
+    - Use password-reset migration for old local-only users; do not preserve or re-use old local password hashes.
+    - Identify local users where `SupabaseUserId` is null and decide which accounts should be migrated.
+    - Create or invite matching Supabase auth users by email.
+    - Link each local `Users` row to the created Supabase user by setting `SupabaseUserId`.
+    - Trigger Supabase password reset/recovery email for migrated users so they set a new Supabase-managed password.
+    - Keep `PasswordHash` unused after migration; do not ask frontend to send or manage old password hashes.
+    - Frontend should show clear login guidance for migrated users: if old credentials no longer work, use "Forgot password" / password reset.
+    - Frontend should treat password reset as a Supabase-auth flow, then call `GET /api/auth/me` after session restore to confirm the local HeartLog account is linked.
+    - Document expected migration failure states for frontend: login can fail if user has not reset password yet; `/api/auth/me` can fail if Supabase account exists but local `SupabaseUserId` was not linked.
+    - Verify: migrated user can reset password, log in through Supabase-backed `/api/auth/login`, call `/api/auth/me`, and access user-owned entries without local password hash.
+
+14. Document frontend auth integration
     - Add frontend-facing documentation for the complete auth flow after registration/login cleanup is done.
     - Explain that the frontend sends only the Supabase access token for user-owned API calls, not a user id.
     - Document registration flow: call `POST /api/auth/register`, store/use returned Supabase session, then optionally call `GET /api/auth/me` to bootstrap HeartLog user state.

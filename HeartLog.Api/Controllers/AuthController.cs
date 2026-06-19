@@ -37,21 +37,14 @@ public class AuthController : ControllerBase
 
     [AllowAnonymous]
     [HttpPost("login")]
-    public async Task<ActionResult<ApiResponse<LoginResponseDto>>> Login(UserLoginDto userDto)
+    public async Task<ActionResult<ApiResponse<AuthSessionResponseDto>>> Login(UserLoginDto userDto)
     {
-        string token = await _userService.LoginUserAsync(userDto.Email, userDto.Password);
-        
-        // Note: Ideally UserService should return more user info if needed, 
-        // but for now we'll just return the token and basic info from input
-        return Ok(new ApiResponse<LoginResponseDto>
-        (Success: true,
+        var session = await _userService.LoginUserAsync(userDto.Email, userDto.Password);
+
+        return Ok(new ApiResponse<AuthSessionResponseDto>(
+            Success: true,
             Message: "Login successful",
-            Data: new LoginResponseDto
-            {
-                Email = userDto.Email,
-                Token = token
-                // Username would ideally come from the service result
-            }));
+            Data: UserMapper.ToDto(session)));
     }
 
     [Authorize]

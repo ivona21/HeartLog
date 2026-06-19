@@ -3,6 +3,7 @@ using HeartLog.BLL.Interfaces;
 using HeartLog.BLL.Models.Auth;
 using Microsoft.Extensions.Options;
 using Supabase;
+using Supabase.Gotrue.Exceptions;
 
 namespace HeartLog.BLL.Services.Auth;
 
@@ -27,7 +28,7 @@ public class SupabaseAuthService : IExternalAuthService
             var client = await CreateClientAsync();
             var session = await client.Auth.SignUp(email, password);
 
-            return ToExternalAuthSession(session);
+            return ToExternalAuthSession(session, "registration");
         }
         catch (ExternalAuthException)
         {
@@ -39,9 +40,34 @@ public class SupabaseAuthService : IExternalAuthService
         }
     }
 
-    public Task<ExternalAuthSession> LoginAsync(string email, string password)
+    public async Task<ExternalAuthSession> LoginAsync(string email, string password)
     {
-        throw new NotImplementedException();
+        try
+        {
+            var client = await CreateClientAsync();
+            var session = await client.Auth.SignIn(email, password);
+
+            return ToExternalAuthSession(session, "login");
+        }
+        catch (GotrueException ex)
+        {
+            if (ex.Reason is FailureHint.Reason.UserBadLogin
+                or FailureHint.Reason.UserBadPassword
+                or FailureHint.Reason.UserBadEmailAddress)
+            {
+                throw new UnauthorizedAccessException("Invalid email or password.", ex);
+            }
+
+            throw new ExternalAuthException("Supabase login failed.", ex);
+        }
+        catch (ExternalAuthException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            throw new ExternalAuthException("Supabase login failed.", ex);
+        }
     }
 
     private async Task<Client> CreateClientAsync()
@@ -52,31 +78,31 @@ public class SupabaseAuthService : IExternalAuthService
         return client;
     }
 
-    private static ExternalAuthSession ToExternalAuthSession(Supabase.Gotrue.Session? session)
+    private static ExternalAuthSession ToExternalAuthSession(Supabase.Gotrue.Session? session, string operation)
     {
         if (session is null)
         {
-            throw new ExternalAuthException("Supabase registration did not return a session.");
+            throw new ExternalAuthException($"Supabase {operation} did not return a session.");
         }
 
         if (session.User is null)
         {
-            throw new ExternalAuthException("Supabase registration did not return a user.");
+            throw new ExternalAuthException($"Supabase {operation} did not return a user.");
         }
 
         if (!Guid.TryParse(session.User.Id, out var providerUserId))
         {
-            throw new ExternalAuthException("Supabase registration returned an invalid user id.");
+            throw new ExternalAuthException($"Supabase {operation} returned an invalid user id.");
         }
 
         if (string.IsNullOrWhiteSpace(session.User.Email))
         {
-            throw new ExternalAuthException("Supabase registration did not return a user email.");
+            throw new ExternalAuthException($"Supabase {operation} did not return a user email.");
         }
 
         if (string.IsNullOrWhiteSpace(session.AccessToken))
         {
-            throw new ExternalAuthException("Supabase registration did not return an access token. Confirm email may be enabled.");
+            throw new ExternalAuthException($"Supabase {operation} did not return an access token.");
         }
 
         return new ExternalAuthSession

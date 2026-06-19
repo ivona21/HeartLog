@@ -42,7 +42,7 @@ public class ExceptionHandlingMiddleware
                 break;
             case ExternalAuthException:
                 context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-                response.Message = "Unable to complete registration. Please try again.";
+                response.Message = "Unable to complete authentication. Please try again.";
                 break;
             case ExistingUsernameException:
                 context.Response.StatusCode = (int)HttpStatusCode.Conflict;
