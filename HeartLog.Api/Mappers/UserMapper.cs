@@ -43,8 +43,7 @@ public static class UserMapper
             AccessToken = session.AccessToken,
             RefreshToken = session.RefreshToken,
             ExpiresAt = session.ExpiresAt,
-            Email = session.User.Email,
-            SupabaseUserId = session.User.ProviderUserId
+            Email = session.User.Email
         };
     }
 }

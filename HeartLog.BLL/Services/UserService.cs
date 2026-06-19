@@ -53,29 +53,21 @@ public class UserService: IUserService
         return session;
     }
 
-    public async Task<string> LoginUserAsync(string email, string password)
+    public async Task<ExternalAuthSession> LoginUserAsync(string email, string password)
     {
-        var existingUser = await _userRepository.GetByEmailAsync(email);
-        if (existingUser == null)
+        var session = await _externalAuthService.LoginAsync(email, password);
+
+        var existingUser = await _userRepository.GetBySupabaseUserIdAsync(session.User.ProviderUserId);
+        if (existingUser is null)
         {
-            _logger.LogInformation("Login attempt with non-existing email: {Email}", email);
-            throw new UnauthorizedAccessException("Invalid email or password.");
+            _logger.LogInformation(
+                "Supabase login succeeded but local HeartLog user was not found. SupabaseUserId: {SupabaseUserId}, Email: {Email}",
+                session.User.ProviderUserId,
+                session.User.Email);
+            throw new UnauthorizedAccessException("Authenticated user could not be resolved.");
         }
 
-        if (string.IsNullOrWhiteSpace(existingUser.PasswordHash))
-        {
-            _logger.LogInformation("Local login attempt for user without local password hash: {Email}", email);
-            throw new UnauthorizedAccessException("Invalid email or password.");
-        }
-        
-        var passwordVerificationResult = _passwordHasher.VerifyHashedPassword(existingUser, existingUser.PasswordHash, password);
-        if (passwordVerificationResult == PasswordVerificationResult.Failed)
-        {
-            _logger.LogInformation("Login attempt with incorrect password for email: {Email}", email);
-            throw new UnauthorizedAccessException("Invalid email or password.");
-        }
-
-        return _tokenGenerator.GenerateToken(existingUser);
+        return session;
     }
 
     public async Task<CurrentUserResult> GetCurrentUserAsync(string email)
