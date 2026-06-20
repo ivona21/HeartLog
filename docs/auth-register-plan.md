@@ -91,14 +91,15 @@ Goal: use Supabase only for authentication, keep application users in the HeartL
     - Verify: no references to old token generator/password hash path remain.
 
 13. Complete one-off old local user migration
-    - One important local user was manually created in Supabase Auth with a known password.
-    - The matching local `Users` row was linked by setting `SupabaseUserId`.
+    - Important existing local users were migrated manually where needed.
+    - Matching local `Users` rows were linked by setting `SupabaseUserId`.
     - The local `PasswordHash` was cleared.
     - Other local-only users where `SupabaseUserId` was null were deleted because they were not important.
     - Verify: there are no remaining local-only users and the migrated user can log in through Supabase-backed `/api/auth/login`.
 
 14. Document frontend auth integration
     - Add frontend-facing documentation for the complete auth flow after registration/login cleanup is done.
+    - Documentation file: `docs/frontend-auth-flow.md`.
     - Explain that the frontend sends only the Supabase access token for user-owned API calls, not a user id.
     - Document registration flow: call `POST /api/auth/register`, store/use returned Supabase session, then optionally call `GET /api/auth/me` to bootstrap HeartLog user state.
     - Document login flow: call `POST /api/auth/login`, store/use returned Supabase session, then call `GET /api/auth/me` to load the local HeartLog user.
