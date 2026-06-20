@@ -90,17 +90,12 @@ Goal: use Supabase only for authentication, keep application users in the HeartL
     - Rename DTOs if needed so response names do not imply local JWTs.
     - Verify: no references to old token generator/password hash path remain.
 
-13. Migrate old local-password users with password reset
-    - Use password-reset migration for old local-only users; do not preserve or re-use old local password hashes.
-    - Identify local users where `SupabaseUserId` is null and decide which accounts should be migrated.
-    - Create or invite matching Supabase auth users by email.
-    - Link each local `Users` row to the created Supabase user by setting `SupabaseUserId`.
-    - Trigger Supabase password reset/recovery email for migrated users so they set a new Supabase-managed password.
-    - Keep `PasswordHash` unused after migration; do not ask frontend to send or manage old password hashes.
-    - Frontend should show clear login guidance for migrated users: if old credentials no longer work, use "Forgot password" / password reset.
-    - Frontend should treat password reset as a Supabase-auth flow, then call `GET /api/auth/me` after session restore to confirm the local HeartLog account is linked.
-    - Document expected migration failure states for frontend: login can fail if user has not reset password yet; `/api/auth/me` can fail if Supabase account exists but local `SupabaseUserId` was not linked.
-    - Verify: migrated user can reset password, log in through Supabase-backed `/api/auth/login`, call `/api/auth/me`, and access user-owned entries without local password hash.
+13. Complete one-off old local user migration
+    - One important local user was manually created in Supabase Auth with a known password.
+    - The matching local `Users` row was linked by setting `SupabaseUserId`.
+    - The local `PasswordHash` was cleared.
+    - Other local-only users where `SupabaseUserId` was null were deleted because they were not important.
+    - Verify: there are no remaining local-only users and the migrated user can log in through Supabase-backed `/api/auth/login`.
 
 14. Document frontend auth integration
     - Add frontend-facing documentation for the complete auth flow after registration/login cleanup is done.
@@ -117,5 +112,6 @@ Goal: use Supabase only for authentication, keep application users in the HeartL
 
 - Add email confirmation support.
 - Add account linking/recovery behavior if a Supabase user exists but local user creation failed.
+- For future real local-password user migrations, prefer password-reset migration: create/invite Supabase users, link `SupabaseUserId`, and guide users through Supabase password reset instead of preserving local password hashes.
 - Add transactional compensation: if local DB insert fails after Supabase signup, delete or disable the Supabase user if using an admin-capable API.
 - Consider a new Infrastructure project only when there are multiple external integrations or BLL starts accumulating provider-specific code.
