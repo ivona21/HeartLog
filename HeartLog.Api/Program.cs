@@ -12,7 +12,6 @@ using Microsoft.OpenApi.Models;
 
 using HeartLog.Api.Middleware;
 using HeartLog.BLL.Models.Auth;
-using HeartLog.BLL.Services;
 using HeartLog.BLL.Services.Auth;
 using HeartLog.DAL.Seeding;
 using HeartLog.DAL.Interfaces;
@@ -62,7 +61,6 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<ItemsRepository>();
 builder.Services.AddScoped<IEmotionsRepository, EmotionsRepository>();
 builder.Services.AddScoped<IEmotionEntriesRepository, EmotionEntriesRepository>();
-builder.Services.AddScoped<JwtTokenGenerator>();
 builder.Services.AddScoped<EmotionSeeder>();
 builder.Services.AddScoped<IExternalAuthService, SupabaseAuthService>();
 
