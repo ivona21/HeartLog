@@ -99,13 +99,14 @@ Goal: use Supabase only for authentication, keep application users in the HeartL
 
 14. Document frontend auth integration
     - Add frontend-facing documentation for the complete auth flow after registration/login cleanup is done.
+    - Documentation file: `docs/frontend-auth-flow.md`.
     - Explain that the frontend sends only the Supabase access token for user-owned API calls, not a user id.
     - Document registration flow: call `POST /api/auth/register`, store/use returned Supabase session, then optionally call `GET /api/auth/me` to bootstrap HeartLog user state.
     - Document login flow: call `POST /api/auth/login`, store/use returned Supabase session, then call `GET /api/auth/me` to load the local HeartLog user.
     - Document app startup flow: restore Supabase session, call `GET /api/auth/me` with `Authorization: Bearer {accessToken}`, render authenticated app only if it succeeds.
     - Document user-owned data flow: call endpoints like `GET /api/emotion-entries` with bearer token only; backend resolves local `User.Id` from token `sub`.
     - Document expected auth failures: missing/expired/invalid token returns 401; valid Supabase token with no local HeartLog user also returns 401 until account repair/linking exists.
-    - Document token refresh responsibility: frontend should refresh Supabase session/access token using Supabase client behavior before calling the API.
+    - Document token refresh flow: frontend calls HeartLog `POST /api/auth/refresh` with `refreshToken`; frontend does not call Supabase directly.
     - Verify: frontend developer can implement register, login, app bootstrap, logout, and user-owned API calls from the documentation without reading backend code.
 
 ## Later
