@@ -1,25 +1,31 @@
-using System.Text;
 using HeartLog.Api.DTOs;
 using HeartLog.BLL;
 using HeartLog.BLL.Interfaces;
 using HeartLog.DAL.Data;
 using HeartLog.DAL.Repositories;
-using Microsoft.AspNetCore.Authentication.JwtBearer; // for ApplicationDbContext
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Protocols;
+using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models; // for UseNpgsql
+using Microsoft.OpenApi.Models;
 
 using HeartLog.Api.Middleware;
-using HeartLog.BLL.Services;
+using HeartLog.BLL.Models.Auth;
+using HeartLog.BLL.Services.Auth;
 using HeartLog.DAL.Seeding;
 using HeartLog.DAL.Interfaces;
-using HeartLog.DAL.Supabase;
 using Microsoft.AspNetCore.Mvc;
 
 DotNetEnv.Env.Load();
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddEnvironmentVariables();
-var jwtSettings = builder.Configuration.GetSection("JwtSettings");
+var supabaseSettings = builder.Configuration.GetSection("Supabase");
+var supabaseProjectUrl = supabaseSettings["ProjectUrl"]
+                         ?? throw new InvalidOperationException("Supabase project URL is missing.");
+var supabaseIssuer = $"{supabaseProjectUrl.TrimEnd('/')}/auth/v1";
+var supabaseJwksUri = $"{supabaseIssuer}/.well-known/jwks.json";
+var supabaseAudience = supabaseSettings["JwtAudience"] ?? "authenticated";
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
@@ -47,6 +53,7 @@ builder.Services.AddControllers()
         };
     });
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<IItemService, ItemService>();
 builder.Services.AddScoped<IEmotionService, EmotionService>();
 builder.Services.AddScoped<IEmotionEntryService, EmotionEntryService>();
@@ -54,9 +61,8 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<ItemsRepository>();
 builder.Services.AddScoped<IEmotionsRepository, EmotionsRepository>();
 builder.Services.AddScoped<IEmotionEntriesRepository, EmotionEntriesRepository>();
-builder.Services.AddScoped<JwtTokenGenerator>();
 builder.Services.AddScoped<EmotionSeeder>();
-builder.Services.AddScoped<SupabaseAuthService>();
+builder.Services.AddScoped<IExternalAuthService, SupabaseAuthService>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
@@ -98,17 +104,22 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-        var jwtSettings = builder.Configuration.GetSection("JwtSettings");
+        options.MapInboundClaims = false;
+        options.ConfigurationManager = new ConfigurationManager<OpenIdConnectConfiguration>(
+            supabaseJwksUri,
+            new JsonWebKeySetConfigurationRetriever());
+        options.AutomaticRefreshInterval = TimeSpan.FromMinutes(10);
+        options.RefreshInterval = TimeSpan.FromMinutes(5);
+        options.RefreshOnIssuerKeyNotFound = true;
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
+            ValidIssuer = supabaseIssuer,
             ValidateAudience = true,
+            ValidAudience = supabaseAudience,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-            ValidIssuer = jwtSettings["Issuer"],
-            ValidAudience = jwtSettings["Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(Environment.GetEnvironmentVariable("JWT_SECRET_KEY")))
+            ValidAlgorithms = ["ES256"]
         };
     });
 
@@ -175,7 +186,7 @@ app.MapGet("/ping", () => Results.Ok("pong"));
 app.MapGet("/", () => "HeartLog API is running 🚀");
 if (app.Environment.IsDevelopment())
 {
-    app.MapGet("/test-supabase", async (SupabaseAuthService authService) =>
+    app.MapGet("/test-supabase", async (IExternalAuthService authService) =>
     {
         await authService.TestConnectionAsync();
         return Results.Ok("Supabase connection successful!");
@@ -184,3 +195,23 @@ if (app.Environment.IsDevelopment())
 
 app.MapControllers();
 app.Run();
+
+public sealed class JsonWebKeySetConfigurationRetriever : IConfigurationRetriever<OpenIdConnectConfiguration>
+{
+    public async Task<OpenIdConnectConfiguration> GetConfigurationAsync(
+        string address,
+        IDocumentRetriever retriever,
+        CancellationToken cancel)
+    {
+        var json = await retriever.GetDocumentAsync(address, cancel);
+        var keySet = new JsonWebKeySet(json);
+        var configuration = new OpenIdConnectConfiguration();
+
+        foreach (var key in keySet.GetSigningKeys())
+        {
+            configuration.SigningKeys.Add(key);
+        }
+
+        return configuration;
+    }
+}

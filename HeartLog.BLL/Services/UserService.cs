@@ -1,10 +1,8 @@
 using HeartLog.BLL.Exceptions;
 using HeartLog.BLL.Interfaces;
-using HeartLog.BLL.Models;
-using HeartLog.BLL.Services;
+using HeartLog.BLL.Models.Auth;
 using HeartLog.DAL.Interfaces;
 using HeartLog.DAL.Models;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 
 namespace HeartLog.BLL;
@@ -13,18 +11,19 @@ public class UserService: IUserService
 {
     private readonly IUserRepository _userRepository;
     private readonly ILogger<UserService> _logger;
-    private readonly PasswordHasher<User> _passwordHasher;
-    private readonly JwtTokenGenerator _tokenGenerator;
+    private readonly IExternalAuthService _externalAuthService;
     
-    public UserService(IUserRepository userRepository, ILogger<UserService> logger, JwtTokenGenerator tokenGenerator)
+    public UserService(
+        IUserRepository userRepository,
+        ILogger<UserService> logger,
+        IExternalAuthService externalAuthService)
     {
         _userRepository = userRepository;
         _logger = logger;
-        _passwordHasher = new PasswordHasher<User>();
-        _tokenGenerator = tokenGenerator;
+        _externalAuthService = externalAuthService;
     }
     
-    public async Task RegisterUserAsync(User user, string password)
+    public async Task<ExternalAuthSession> RegisterUserAsync(User user, string password)
     {
         // check if user already exists
         var existingUser = await _userRepository.GetByEmailAsync(user.Email);
@@ -33,52 +32,33 @@ public class UserService: IUserService
             _logger.LogInformation("Attempted registration with existing email: {Email}", user.Email);
             throw new ExistingEmailException(user.Email);
         }
-        
-        user.PasswordHash = _passwordHasher.HashPassword(user, password);
-        
+
+        var session = await _externalAuthService.RegisterAsync(user.Email, password);
+
+        user.Email = session.User.Email;
+        user.SupabaseUserId = session.User.ProviderUserId;
+
         // call repository to save user
         await _userRepository.AddUserAsync(user);
         await _userRepository.SaveChangesAsync();
+
+        return session;
     }
 
-    public async Task<string> LoginUserAsync(string email, string password)
+    public async Task<ExternalAuthSession> LoginUserAsync(string email, string password)
     {
-        var existingUser = await _userRepository.GetByEmailAsync(email);
-        if (existingUser == null)
-        {
-            _logger.LogInformation("Login attempt with non-existing email: {Email}", email);
-            throw new UnauthorizedAccessException("Invalid email or password.");
-        }
-        
-        var passwordVerificationResult = _passwordHasher.VerifyHashedPassword(existingUser, existingUser.PasswordHash, password);
-        if (passwordVerificationResult == PasswordVerificationResult.Failed)
-        {
-            _logger.LogInformation("Login attempt with incorrect password for email: {Email}", email);
-            throw new UnauthorizedAccessException("Invalid email or password.");
-        }
+        var session = await _externalAuthService.LoginAsync(email, password);
 
-        return _tokenGenerator.GenerateToken(existingUser);
-    }
-
-    public async Task<CurrentUserResult> GetCurrentUserAsync(string email)
-    {
-        if (string.IsNullOrWhiteSpace(email))
+        var existingUser = await _userRepository.GetBySupabaseUserIdAsync(session.User.ProviderUserId);
+        if (existingUser is null)
         {
-            throw new UnauthorizedAccessException("Authenticated user email was not found.");
-        }
-
-        var existingUser = await _userRepository.GetByEmailAsync(email);
-        if (existingUser == null)
-        {
-            _logger.LogInformation("Authenticated user could not be resolved for email: {Email}", email);
+            _logger.LogInformation(
+                "Supabase login succeeded but local HeartLog user was not found. SupabaseUserId: {SupabaseUserId}, Email: {Email}",
+                session.User.ProviderUserId,
+                session.User.Email);
             throw new UnauthorizedAccessException("Authenticated user could not be resolved.");
         }
 
-        return new CurrentUserResult
-        {
-            Id = existingUser.Id,
-            Username = existingUser.Username,
-            Email = existingUser.Email
-        };
+        return session;
     }
 }
