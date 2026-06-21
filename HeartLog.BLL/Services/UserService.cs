@@ -49,16 +49,30 @@ public class UserService: IUserService
     {
         var session = await _externalAuthService.LoginAsync(email, password);
 
+        await EnsureLocalUserExistsAsync(session);
+
+        return session;
+    }
+
+    public async Task<ExternalAuthSession> RefreshSessionAsync(string refreshToken)
+    {
+        var session = await _externalAuthService.RefreshAsync(refreshToken);
+
+        await EnsureLocalUserExistsAsync(session);
+
+        return session;
+    }
+
+    private async Task EnsureLocalUserExistsAsync(ExternalAuthSession session)
+    {
         var existingUser = await _userRepository.GetBySupabaseUserIdAsync(session.User.ProviderUserId);
         if (existingUser is null)
         {
             _logger.LogInformation(
-                "Supabase login succeeded but local HeartLog user was not found. SupabaseUserId: {SupabaseUserId}, Email: {Email}",
+                "Supabase authentication succeeded but local HeartLog user was not found. SupabaseUserId: {SupabaseUserId}, Email: {Email}",
                 session.User.ProviderUserId,
                 session.User.Email);
             throw new UnauthorizedAccessException("Authenticated user could not be resolved.");
         }
-
-        return session;
     }
 }

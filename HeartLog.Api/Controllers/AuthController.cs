@@ -47,6 +47,18 @@ public class AuthController : ControllerBase
             Data: UserMapper.ToDto(session)));
     }
 
+    [AllowAnonymous]
+    [HttpPost("refresh")]
+    public async Task<ActionResult<ApiResponse<AuthSessionResponseDto>>> Refresh(RefreshSessionRequest request)
+    {
+        var session = await _userService.RefreshSessionAsync(request.RefreshToken);
+
+        return Ok(new ApiResponse<AuthSessionResponseDto>(
+            Success: true,
+            Message: "Session refreshed successfully",
+            Data: UserMapper.ToDto(session)));
+    }
+
     [Authorize]
     [HttpGet("me")]
     public async Task<ActionResult<ApiResponse<UserMeResponseDto>>> GetCurrentUser()

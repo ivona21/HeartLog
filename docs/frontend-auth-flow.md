@@ -14,7 +14,7 @@ This document describes the HeartLog auth contract for frontend clients.
 
 ## Session Shape
 
-`POST /api/auth/register`, `POST /api/auth/login`, and planned `POST /api/auth/refresh` return the same session shape:
+`POST /api/auth/register`, `POST /api/auth/login`, and `POST /api/auth/refresh` return the same session shape:
 
 ```json
 {
@@ -74,7 +74,7 @@ Frontend behavior:
 
 ## Refresh Session
 
-Planned backend endpoint:
+Backend endpoint:
 
 ```http
 POST /api/auth/refresh
