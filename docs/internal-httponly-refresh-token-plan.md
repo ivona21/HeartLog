@@ -42,7 +42,7 @@ The frontend should continue receiving the short-lived access token in JSON, but
    - Return a simple success response.
    - This is frontend logout from HeartLog's perspective. Supabase server-side session revocation can be added later if needed.
 
-6. Update CORS if needed
+6. Update CORS if needed - done
    - If browser frontend and API are cross-origin, configure CORS to allow the frontend origin and credentials.
    - Do not use wildcard origins with credentials.
 

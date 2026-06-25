@@ -233,4 +233,5 @@ Backend cookie expectations:
 - Cookie is `Secure` outside local development.
 - Cookie uses `SameSite=Lax` for same-site deployments.
 - Cookie uses `SameSite=None; Secure` only if frontend and API are on different sites.
+- Backend CORS must allow the exact frontend origin and credentials for cross-origin browser clients.
 - Frontend must not manually read or write this cookie.
