@@ -106,8 +106,18 @@ Goal: use Supabase only for authentication, keep application users in the HeartL
     - Document app startup flow: restore Supabase session, call `GET /api/auth/me` with `Authorization: Bearer {accessToken}`, render authenticated app only if it succeeds.
     - Document user-owned data flow: call endpoints like `GET /api/emotion-entries` with bearer token only; backend resolves local `User.Id` from token `sub`.
     - Document expected auth failures: missing/expired/invalid token returns 401; valid Supabase token with no local HeartLog user also returns 401 until account repair/linking exists.
-    - Document token refresh flow: frontend calls HeartLog `POST /api/auth/refresh` with `refreshToken`; frontend does not call Supabase directly.
+    - Document token refresh flow: frontend calls HeartLog `POST /api/auth/refresh`; frontend does not call Supabase directly.
     - Verify: frontend developer can implement register, login, app bootstrap, logout, and user-owned API calls from the documentation without reading backend code.
+
+15. Move refresh tokens into HttpOnly cookies
+    - Stop returning `refreshToken` in auth JSON responses.
+    - Set a `heartlog_refresh_token` HttpOnly cookie on successful register/login.
+    - Change `POST /api/auth/refresh` to read the refresh token from the cookie instead of the request body.
+    - Rotate/update the cookie when Supabase returns a new refresh token.
+    - Add `POST /api/auth/logout` to clear the refresh-token cookie and let frontend clear local access-token state.
+    - Configure CORS credentials support if frontend and API are cross-origin.
+    - Update frontend auth docs so frontend stores only the access token and uses credentialed requests for login, refresh, and logout where needed.
+    - Verify: refresh token is not present in JSON, cookie is HttpOnly, refresh works without request body, missing/invalid cookie returns 401, and logout clears the cookie.
 
 ## Later
 

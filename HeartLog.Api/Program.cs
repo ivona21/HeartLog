@@ -123,22 +123,35 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-// 1. Define a CORS policy
+var allowedCorsOrigins = builder.Configuration
+    .GetSection("Cors:AllowedOrigins")
+    .GetChildren()
+    .Select(origin => origin.Value)
+    .Where(origin => !string.IsNullOrWhiteSpace(origin))
+    .Select(origin => origin!)
+    .ToArray();
+
+if (allowedCorsOrigins.Length == 0)
+{
+    allowedCorsOrigins =
+    [
+        "http://localhost:5173",
+        "http://localhost:5001",
+        "https://v0-heart-log-calm-fee5obmca-ivonas-projects-17db0703.vercel.app",
+        "https://heart-log-calm.vercel.app",
+        "https://71eb8564-b79f-4920-af09-9cd6317e6a88-00-1cgns8l1wsjzo.picard.replit.dev",
+        "https://replit.com"
+    ];
+}
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowV0Frontend", policy =>
     {
-        policy.WithOrigins(
-                "http://localhost:5173",      // localhost 01
-                "http://localhost:5001", // localhost 02
-                "https://v0-heart-log-calm-fee5obmca-ivonas-projects-17db0703.vercel.app", // deployed V0 frontend,
-                "https://heart-log-calm.vercel.app", // deployed on v0
-                "https://71eb8564-b79f-4920-af09-9cd6317e6a88-00-1cgns8l1wsjzo.picard.replit.dev", // replit 01
-                "https://replit.com/@coffeebreak5551/HeartLogCalm" // replit 02
-            )
+        policy.WithOrigins(allowedCorsOrigins)
             .AllowAnyHeader()
             .AllowAnyMethod()
-            .AllowCredentials(); // if using cookies/auth headers
+            .AllowCredentials();
     });
 });
 
