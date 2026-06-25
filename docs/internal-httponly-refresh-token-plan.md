@@ -36,17 +36,17 @@ The frontend should continue receiving the short-lived access token in JSON, but
    - If Supabase returns a new refresh token, overwrite the cookie with the new value.
    - Return only the fresh access-token session payload in JSON.
 
-5. Add logout endpoint
+5. Add logout endpoint - done
    - Add `POST /api/auth/logout`.
    - Clear the refresh-token cookie.
    - Return a simple success response.
    - This is frontend logout from HeartLog's perspective. Supabase server-side session revocation can be added later if needed.
 
-6. Update CORS if needed
+6. Update CORS if needed - done
    - If browser frontend and API are cross-origin, configure CORS to allow the frontend origin and credentials.
    - Do not use wildcard origins with credentials.
 
-7. Update error handling
+7. Update error handling - done
    - Missing refresh cookie should return `401`.
    - Invalid or expired refresh cookie should return `401`.
    - Temporary Supabase/provider failures should remain controlled auth-provider errors.

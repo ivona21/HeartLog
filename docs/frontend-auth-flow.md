@@ -178,7 +178,7 @@ The backend validates the token, reads `sub`, resolves the local `User.Id`, and 
 
 Current expected behavior:
 
-- Frontend calls `POST /api/auth/logout` once the HttpOnly-cookie refresh flow is implemented.
+- Frontend calls `POST /api/auth/logout`.
 - Backend clears the refresh-token cookie.
 - Frontend clears stored access token and local app auth state.
 
@@ -233,4 +233,5 @@ Backend cookie expectations:
 - Cookie is `Secure` outside local development.
 - Cookie uses `SameSite=Lax` for same-site deployments.
 - Cookie uses `SameSite=None; Secure` only if frontend and API are on different sites.
+- Backend CORS must allow the exact frontend origin and credentials for cross-origin browser clients.
 - Frontend must not manually read or write this cookie.
