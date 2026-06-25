@@ -46,7 +46,7 @@ The frontend should continue receiving the short-lived access token in JSON, but
    - If browser frontend and API are cross-origin, configure CORS to allow the frontend origin and credentials.
    - Do not use wildcard origins with credentials.
 
-7. Update error handling
+7. Update error handling - done
    - Missing refresh cookie should return `401`.
    - Invalid or expired refresh cookie should return `401`.
    - Temporary Supabase/provider failures should remain controlled auth-provider errors.
