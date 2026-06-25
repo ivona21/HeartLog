@@ -10,7 +10,7 @@ The frontend should continue receiving the short-lived access token in JSON, but
 
 ## Backend Implementation Steps
 
-1. Add refresh cookie constants/options
+1. Add refresh cookie constants/options - done
    - Cookie name: `heartlog_refresh_token`.
    - `HttpOnly = true`.
    - `Secure = true` outside local development.
@@ -19,17 +19,17 @@ The frontend should continue receiving the short-lived access token in JSON, but
    - Path should be scoped to `/api/auth` unless a broader path is needed.
    - Expiration should align with the refresh token lifetime policy. If exact Supabase refresh expiry is unavailable, use a conservative configured lifetime.
 
-2. Update auth session API response shape
+2. Update auth session API response shape - done
    - Remove `refreshToken` from frontend-facing JSON responses.
    - Keep `accessToken`, `expiresAt`, and `email`.
    - Do not expose `supabaseUserId`.
 
-3. Update register/login endpoints
+3. Update register/login endpoints - done
    - After Supabase returns a session, set the refresh-token cookie if a refresh token is present.
    - Return only the access-token session payload in JSON.
    - If Supabase does not return a refresh token for a successful login/register, treat it as an auth-provider error.
 
-4. Update refresh endpoint
+4. Update refresh endpoint - done
    - Change `POST /api/auth/refresh` to read the refresh token from the HttpOnly cookie.
    - Do not require a request body.
    - Exchange the cookie refresh token with Supabase.

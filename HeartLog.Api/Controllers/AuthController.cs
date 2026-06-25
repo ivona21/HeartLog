@@ -1,9 +1,13 @@
+using HeartLog.Api.Auth;
 using HeartLog.Api.DTOs;
 using HeartLog.Api.Mappers;
+using HeartLog.BLL.Exceptions;
 using HeartLog.BLL.Interfaces;
+using HeartLog.BLL.Models.Auth;
 using HeartLog.DAL.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Hosting;
 
 namespace HeartLog.Api.Controllers;
 
@@ -13,13 +17,16 @@ public class AuthController : ControllerBase
 {
     private readonly IUserService _userService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IHostEnvironment _environment;
 
     public AuthController(
         IUserService userService,
-        ICurrentUserService currentUserService)
+        ICurrentUserService currentUserService,
+        IHostEnvironment environment)
     {
         _userService = userService;
         _currentUserService = currentUserService;
+        _environment = environment;
     }
 
     [AllowAnonymous]
@@ -28,6 +35,8 @@ public class AuthController : ControllerBase
     {
         User user = UserMapper.ToEntity(userDto);
         var session = await _userService.RegisterUserAsync(user, userDto.Password);
+
+        SetRefreshTokenCookie(session);
 
         return Ok(new ApiResponse<AuthSessionResponseDto>(
             Success: true,
@@ -41,6 +50,8 @@ public class AuthController : ControllerBase
     {
         var session = await _userService.LoginUserAsync(userDto.Email, userDto.Password);
 
+        SetRefreshTokenCookie(session);
+
         return Ok(new ApiResponse<AuthSessionResponseDto>(
             Success: true,
             Message: "Login successful",
@@ -49,9 +60,17 @@ public class AuthController : ControllerBase
 
     [AllowAnonymous]
     [HttpPost("refresh")]
-    public async Task<ActionResult<ApiResponse<AuthSessionResponseDto>>> Refresh(RefreshSessionRequest request)
+    public async Task<ActionResult<ApiResponse<AuthSessionResponseDto>>> Refresh()
     {
-        var session = await _userService.RefreshSessionAsync(request.RefreshToken);
+        if (!Request.Cookies.TryGetValue(RefreshTokenCookie.Name, out var refreshToken)
+            || string.IsNullOrWhiteSpace(refreshToken))
+        {
+            throw new UnauthorizedAccessException("Invalid refresh token.");
+        }
+
+        var session = await _userService.RefreshSessionAsync(refreshToken);
+
+        SetRefreshTokenCookie(session);
 
         return Ok(new ApiResponse<AuthSessionResponseDto>(
             Success: true,
@@ -82,5 +101,18 @@ public class AuthController : ControllerBase
     public async Task<ActionResult<ApiResponse>> Ping()
     {
         return Ok(new ApiResponse(Success: true, Message: "Pong"));
+    }
+
+    private void SetRefreshTokenCookie(ExternalAuthSession session)
+    {
+        if (string.IsNullOrWhiteSpace(session.RefreshToken))
+        {
+            throw new ExternalAuthException("Authentication provider did not return a refresh token.");
+        }
+
+        Response.Cookies.Append(
+            RefreshTokenCookie.Name,
+            session.RefreshToken,
+            RefreshTokenCookie.CreateOptions(_environment));
     }
 }

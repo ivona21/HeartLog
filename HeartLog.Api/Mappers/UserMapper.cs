@@ -30,7 +30,6 @@ public static class UserMapper
         return new AuthSessionResponseDto
         {
             AccessToken = session.AccessToken,
-            RefreshToken = session.RefreshToken,
             ExpiresAt = session.ExpiresAt,
             Email = session.User.Email
         };

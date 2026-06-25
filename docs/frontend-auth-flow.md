@@ -30,7 +30,7 @@ This document describes the HeartLog auth contract for frontend clients.
 
 The response intentionally does not expose `supabaseUserId`.
 
-Planned cookie-based refresh-token contract:
+Cookie-based refresh-token contract:
 
 - `refreshToken` should not be returned in JSON.
 - The backend sets the refresh token in an HttpOnly cookie named `heartlog_refresh_token`.
@@ -55,7 +55,7 @@ Frontend behavior:
 
 - Store/use the returned session.
 - Use `data.accessToken` as the bearer token for protected API calls.
-- Do not expect `data.refreshToken` once the HttpOnly-cookie refresh flow is implemented.
+- Do not expect `data.refreshToken`.
 - Include credentials on the request if frontend and API are cross-origin, so the browser accepts the refresh-token cookie.
 - Optionally call `GET /api/auth/me` immediately to load the local HeartLog user.
 
@@ -75,7 +75,7 @@ Frontend behavior:
 
 - Store/use the returned session.
 - Use `data.accessToken` as the bearer token for protected API calls.
-- Do not expect `data.refreshToken` once the HttpOnly-cookie refresh flow is implemented.
+- Do not expect `data.refreshToken`.
 - Include credentials on the request if frontend and API are cross-origin, so the browser accepts the refresh-token cookie.
 - Call `GET /api/auth/me` after login to load the local HeartLog user.
 - Bad credentials return `401`.
@@ -105,7 +105,7 @@ Expected response:
 Important details:
 
 - No bearer token is required for refresh, because the access token may already be expired.
-- With the planned HttpOnly-cookie flow, the frontend sends no refresh token in the body.
+- The frontend sends no refresh token in the body.
 - The browser sends the `heartlog_refresh_token` cookie automatically when credentials are included.
 - The backend exchanges the refresh token from the cookie with Supabase and returns a fresh access-token session.
 - Invalid, expired, or missing refresh cookie should return `401`.
