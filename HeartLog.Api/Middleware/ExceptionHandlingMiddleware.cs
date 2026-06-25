@@ -23,9 +23,26 @@ public class ExceptionHandlingMiddleware
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An unhandled exception occurred.");
+            if (IsExpectedException(ex))
+            {
+                _logger.LogWarning(ex, "A handled request exception occurred.");
+            }
+            else
+            {
+                _logger.LogError(ex, "An unhandled exception occurred.");
+            }
+
             await HandleExceptionAsync(context, ex);
         }
+    }
+
+    private static bool IsExpectedException(Exception exception)
+    {
+        return exception is ExistingEmailException
+            or ExistingUsernameException
+            or ExternalAuthException
+            or InvalidEmotionEntryException
+            or UnauthorizedAccessException;
     }
 
     private static async Task HandleExceptionAsync(HttpContext context, Exception exception)
