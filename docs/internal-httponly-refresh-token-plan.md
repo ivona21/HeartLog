@@ -36,7 +36,7 @@ The frontend should continue receiving the short-lived access token in JSON, but
    - If Supabase returns a new refresh token, overwrite the cookie with the new value.
    - Return only the fresh access-token session payload in JSON.
 
-5. Add logout endpoint
+5. Add logout endpoint - done
    - Add `POST /api/auth/logout`.
    - Clear the refresh-token cookie.
    - Return a simple success response.

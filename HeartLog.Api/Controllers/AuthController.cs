@@ -78,6 +78,19 @@ public class AuthController : ControllerBase
             Data: UserMapper.ToDto(session)));
     }
 
+    [AllowAnonymous]
+    [HttpPost("logout")]
+    public ActionResult<ApiResponse> Logout()
+    {
+        Response.Cookies.Delete(
+            RefreshTokenCookie.Name,
+            RefreshTokenCookie.CreateDeleteOptions(_environment));
+
+        return Ok(new ApiResponse(
+            Success: true,
+            Message: "Logout successful"));
+    }
+
     [Authorize]
     [HttpGet("me")]
     public async Task<ActionResult<ApiResponse<UserMeResponseDto>>> GetCurrentUser()

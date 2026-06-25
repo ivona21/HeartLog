@@ -178,7 +178,7 @@ The backend validates the token, reads `sub`, resolves the local `User.Id`, and 
 
 Current expected behavior:
 
-- Frontend calls `POST /api/auth/logout` once the HttpOnly-cookie refresh flow is implemented.
+- Frontend calls `POST /api/auth/logout`.
 - Backend clears the refresh-token cookie.
 - Frontend clears stored access token and local app auth state.
 
