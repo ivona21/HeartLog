@@ -13,9 +13,8 @@ The frontend should continue receiving the short-lived access token in JSON, but
 1. Add refresh cookie constants/options - done
    - Cookie name: `heartlog_refresh_token`.
    - `HttpOnly = true`.
-   - `Secure = true` outside local development.
-   - `SameSite = Lax` for same-site frontend/backend deployments.
-   - Use `SameSite = None` plus `Secure = true` if frontend and API are on different sites.
+   - Local development uses `SameSite = Lax`.
+   - Deployed environments use `SameSite = None` plus `Secure = true` for Vercel-to-Render cross-site requests.
    - Path should be scoped to `/api/auth` unless a broader path is needed.
    - Expiration should align with the refresh token lifetime policy. If exact Supabase refresh expiry is unavailable, use a conservative configured lifetime.
 
