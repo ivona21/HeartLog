@@ -230,8 +230,7 @@ Backend cookie expectations:
 
 - Cookie name: `heartlog_refresh_token`.
 - Cookie is `HttpOnly`.
-- Cookie is `Secure` outside local development.
-- Cookie uses `SameSite=Lax` for same-site deployments.
-- Cookie uses `SameSite=None; Secure` only if frontend and API are on different sites.
+- Local development cookie uses `SameSite=Lax`.
+- Deployed cookie uses `SameSite=None; Secure` so Vercel-to-Render cross-site requests can send it.
 - Backend CORS must allow the exact frontend origin and credentials for cross-origin browser clients.
 - Frontend must not manually read or write this cookie.
