@@ -25,11 +25,13 @@ public static class RefreshTokenCookie
 
     private static CookieOptions CreateBaseOptions(IHostEnvironment environment, DateTimeOffset expires)
     {
+        var isDevelopment = environment.IsDevelopment();
+
         return new CookieOptions
         {
             HttpOnly = true,
-            Secure = !environment.IsDevelopment(),
-            SameSite = SameSiteMode.Lax,
+            Secure = !isDevelopment,
+            SameSite = isDevelopment ? SameSiteMode.Lax : SameSiteMode.None,
             Path = Path,
             Expires = expires
         };
