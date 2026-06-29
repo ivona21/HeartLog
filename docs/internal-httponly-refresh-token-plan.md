@@ -51,7 +51,7 @@ The frontend should continue receiving the short-lived access token in JSON, but
    - Invalid or expired refresh cookie should return `401`.
    - Temporary Supabase/provider failures should remain controlled auth-provider errors.
 
-8. Verify
+8. Verify - static checks done, runtime pending
    - Login response includes `Set-Cookie` for `heartlog_refresh_token`.
    - Login JSON does not include `refreshToken`.
    - Refresh succeeds with cookie and no body.
@@ -59,6 +59,8 @@ The frontend should continue receiving the short-lived access token in JSON, but
    - Refresh without cookie returns `401`.
    - Logout clears the cookie.
    - Protected endpoints still require `Authorization: Bearer ACCESS_TOKEN`.
+   - Static verification completed: controller, DTO, cookie helper, CORS, and docs references are aligned.
+   - Runtime verification is still pending because API build/compile commands hang in this environment.
 
 ## Frontend Coordination
 
