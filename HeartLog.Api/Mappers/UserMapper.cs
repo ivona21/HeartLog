@@ -39,8 +39,7 @@ public static class UserMapper
     {
         return new AuthRegistrationResponseDto
         {
-            Email = registration.Email,
-            EmailConfirmationRequired = registration.EmailConfirmationRequired
+            Email = registration.Email
         };
     }
 }

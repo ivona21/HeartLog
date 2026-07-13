@@ -52,7 +52,6 @@ Add a registration-specific auth model in BLL, for example:
 public class ExternalAuthRegistrationResult
 {
     public string Email { get; set; } = string.Empty;
-    public bool EmailConfirmationRequired { get; set; } = true;
 }
 ```
 
@@ -77,8 +76,7 @@ Expected backend response:
   "success": true,
   "message": "Registration successful. Please confirm your email before logging in.",
   "data": {
-    "email": "user@example.com",
-    "emailConfirmationRequired": true
+    "email": "user@example.com"
   }
 }
 ```
@@ -104,7 +102,6 @@ Add API DTO, for example:
 public class AuthRegistrationResponseDto
 {
     public string Email { get; set; } = string.Empty;
-    public bool EmailConfirmationRequired { get; set; }
 }
 ```
 
@@ -161,7 +158,6 @@ Frontend registration response type:
 ```ts
 type RegisterResponse = {
   email: string;
-  emailConfirmationRequired: boolean;
 };
 ```
 
@@ -214,7 +210,7 @@ The frontend route can simply tell the user email confirmation succeeded and off
 2. Call `POST /api/auth/register`.
 3. Expected:
    - `200 OK`
-   - response contains `emailConfirmationRequired: true`
+   - response contains the registered email
    - response does not contain `accessToken`
    - response does not set `heartlog_refresh_token`
 4. Verify Supabase sends confirmation email.

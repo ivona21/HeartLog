@@ -35,8 +35,7 @@ public class SupabaseAuthService : IExternalAuthService
             {
                 Email = string.IsNullOrWhiteSpace(session?.User?.Email)
                     ? email
-                    : session.User.Email,
-                EmailConfirmationRequired = true
+                    : session.User.Email
             };
         }
         catch (ExternalAuthException)
