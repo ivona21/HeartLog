@@ -40,7 +40,7 @@ public class UserService: IUserService
     {
         var session = await _externalAuthService.LoginAsync(email, password);
 
-        await EnsureLocalUserExistsAsync(session);
+        await EnsureLocalUserExistsOrCreateAsync(session);
 
         return session;
     }
@@ -65,5 +65,43 @@ public class UserService: IUserService
                 session.User.Email);
             throw new UnauthorizedAccessException("Authenticated user could not be resolved.");
         }
+    }
+
+    private async Task EnsureLocalUserExistsOrCreateAsync(ExternalAuthSession session)
+    {
+        var existingUser = await _userRepository.GetBySupabaseUserIdAsync(session.User.ProviderUserId);
+        if (existingUser is not null)
+        {
+            return;
+        }
+
+        var existingUserByEmail = await _userRepository.GetByEmailAsync(session.User.Email);
+        if (existingUserByEmail is not null)
+        {
+            if (existingUserByEmail.SupabaseUserId is not null)
+            {
+                _logger.LogWarning(
+                    "Supabase login returned user id {SupabaseUserId} for email {Email}, but local user is linked to different Supabase user id {ExistingSupabaseUserId}.",
+                    session.User.ProviderUserId,
+                    session.User.Email,
+                    existingUserByEmail.SupabaseUserId);
+                throw new UnauthorizedAccessException("Authenticated user could not be resolved.");
+            }
+
+            existingUserByEmail.SupabaseUserId = session.User.ProviderUserId;
+            await _userRepository.SaveChangesAsync();
+
+            return;
+        }
+
+        var user = new User
+        {
+            Email = session.User.Email,
+            SupabaseUserId = session.User.ProviderUserId,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        await _userRepository.AddUserAsync(user);
+        await _userRepository.SaveChangesAsync();
     }
 }

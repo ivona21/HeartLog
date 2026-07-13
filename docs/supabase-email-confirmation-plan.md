@@ -5,7 +5,8 @@ Goal: adjust HeartLog registration for Supabase projects where email confirmatio
 ## Status
 
 - Step 1 completed: registration now returns a pending-confirmation result instead of an authenticated session.
-- Next step: create or link the local HeartLog user on first confirmed login.
+- Step 2 completed: login now creates or links the local HeartLog user after Supabase authentication succeeds.
+- Next step: update frontend/auth docs and run the end-to-end manual confirmation flow.
 
 ## Current Problem
 
