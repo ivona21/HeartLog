@@ -24,14 +24,20 @@ public class SupabaseAuthService : IExternalAuthService
         await CreateClientAsync();
     }
 
-    public async Task<ExternalAuthSession> RegisterAsync(string email, string password)
+    public async Task<ExternalAuthRegistrationResult> RegisterAsync(string email, string password)
     {
         try
         {
             var client = await CreateClientAsync();
             var session = await client.Auth.SignUp(email, password);
 
-            return ToExternalAuthSession(session, "registration");
+            return new ExternalAuthRegistrationResult
+            {
+                Email = string.IsNullOrWhiteSpace(session?.User?.Email)
+                    ? email
+                    : session.User.Email,
+                EmailConfirmationRequired = true
+            };
         }
         catch (ExternalAuthException)
         {

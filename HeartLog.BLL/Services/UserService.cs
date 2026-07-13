@@ -23,7 +23,7 @@ public class UserService: IUserService
         _externalAuthService = externalAuthService;
     }
     
-    public async Task<ExternalAuthSession> RegisterUserAsync(User user, string password)
+    public async Task<ExternalAuthRegistrationResult> RegisterUserAsync(User user, string password)
     {
         // check if user already exists
         var existingUser = await _userRepository.GetByEmailAsync(user.Email);
@@ -33,16 +33,7 @@ public class UserService: IUserService
             throw new ExistingEmailException(user.Email);
         }
 
-        var session = await _externalAuthService.RegisterAsync(user.Email, password);
-
-        user.Email = session.User.Email;
-        user.SupabaseUserId = session.User.ProviderUserId;
-
-        // call repository to save user
-        await _userRepository.AddUserAsync(user);
-        await _userRepository.SaveChangesAsync();
-
-        return session;
+        return await _externalAuthService.RegisterAsync(user.Email, password);
     }
 
     public async Task<ExternalAuthSession> LoginUserAsync(string email, string password)

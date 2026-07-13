@@ -2,6 +2,11 @@
 
 Goal: adjust HeartLog registration for Supabase projects where email confirmation is mandatory.
 
+## Status
+
+- Step 1 completed: registration now returns a pending-confirmation result instead of an authenticated session.
+- Next step: create or link the local HeartLog user on first confirmed login.
+
 ## Current Problem
 
 Registration currently assumes Supabase returns a fully authenticated session immediately after signup.

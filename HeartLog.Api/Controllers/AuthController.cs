@@ -31,17 +31,15 @@ public class AuthController : ControllerBase
 
     [AllowAnonymous]
     [HttpPost("register")]
-    public async Task<ActionResult<ApiResponse<AuthSessionResponseDto>>> Register(UserRegisterDto userDto)
+    public async Task<ActionResult<ApiResponse<AuthRegistrationResponseDto>>> Register(UserRegisterDto userDto)
     {
         User user = UserMapper.ToEntity(userDto);
-        var session = await _userService.RegisterUserAsync(user, userDto.Password);
+        var registration = await _userService.RegisterUserAsync(user, userDto.Password);
 
-        SetRefreshTokenCookie(session);
-
-        return Ok(new ApiResponse<AuthSessionResponseDto>(
+        return Ok(new ApiResponse<AuthRegistrationResponseDto>(
             Success: true,
-            Message: "User registered successfully",
-            Data: UserMapper.ToDto(session)));
+            Message: "Registration successful. Please confirm your email before logging in.",
+            Data: UserMapper.ToDto(registration)));
     }
 
     [AllowAnonymous]

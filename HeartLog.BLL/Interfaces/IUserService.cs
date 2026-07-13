@@ -5,7 +5,7 @@ namespace HeartLog.BLL.Interfaces;
 
 public interface IUserService
 {
-    Task<ExternalAuthSession> RegisterUserAsync(User user, string password);
+    Task<ExternalAuthRegistrationResult> RegisterUserAsync(User user, string password);
     Task<ExternalAuthSession> LoginUserAsync(string email, string password);
     Task<ExternalAuthSession> RefreshSessionAsync(string refreshToken);
 }
