@@ -42,6 +42,16 @@ public class AuthController : ControllerBase
             Data: UserMapper.ToDto(registration)));
     }
 
+
+    [AllowAnonymous]
+    [HttpGet("confirm-email")]
+    public async Task<ActionResult<ApiResponse>> ConfirmEmail( [FromQuery(Name = "token_hash")] string tokenHash,
+        [FromQuery] string type)
+    {
+        return new ApiResponse(
+            Success: true, Message: "Email confirmed successfully");
+    }
+    
     [AllowAnonymous]
     [HttpPost("login")]
     public async Task<ActionResult<ApiResponse<AuthSessionResponseDto>>> Login(UserLoginDto userDto)
