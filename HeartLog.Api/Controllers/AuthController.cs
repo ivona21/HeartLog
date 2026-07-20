@@ -71,6 +71,17 @@ public class AuthController : ControllerBase
             Success: true,
             Message: "Email confirmed successfully"));
     }
+
+    [AllowAnonymous]
+    [HttpPost("resend-confirmation")]
+    public async Task<ActionResult<ApiResponse>> ResendConfirmation(ResendConfirmationRequestDto request)
+    {
+        await _userService.ResendConfirmationAsync(request.Email);
+
+        return Ok(new ApiResponse(
+            Success: true,
+            Message: "If the account is waiting for confirmation, a new confirmation email has been sent."));
+    }
     
     [AllowAnonymous]
     [HttpPost("login")]
