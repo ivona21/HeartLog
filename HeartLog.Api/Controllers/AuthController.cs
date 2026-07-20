@@ -42,6 +42,47 @@ public class AuthController : ControllerBase
             Data: UserMapper.ToDto(registration)));
     }
 
+
+    [AllowAnonymous]
+    [HttpGet("confirm-email")]
+    public async Task<ActionResult<ApiResponse>> ConfirmEmail(
+        [FromQuery(Name = "token_hash")] string tokenHash,
+        [FromQuery] string type)
+    {
+        if (string.IsNullOrWhiteSpace(tokenHash))
+        {
+            return BadRequest(new ErrorResponse
+            {
+                Message = "Email confirmation token is required."
+            });
+        }
+
+        if (string.IsNullOrWhiteSpace(type))
+        {
+            return BadRequest(new ErrorResponse
+            {
+                Message = "Email confirmation type is required."
+            });
+        }
+
+        await _userService.ConfirmEmailAsync(tokenHash, type);
+
+        return Ok(new ApiResponse(
+            Success: true,
+            Message: "Email confirmed successfully"));
+    }
+
+    [AllowAnonymous]
+    [HttpPost("resend-confirmation")]
+    public async Task<ActionResult<ApiResponse>> ResendConfirmation(ResendConfirmationRequestDto request)
+    {
+        await _userService.ResendConfirmationAsync(request.Email);
+
+        return Ok(new ApiResponse(
+            Success: true,
+            Message: "If the account is waiting for confirmation, a new confirmation email has been sent."));
+    }
+    
     [AllowAnonymous]
     [HttpPost("login")]
     public async Task<ActionResult<ApiResponse<AuthSessionResponseDto>>> Login(UserLoginDto userDto)
