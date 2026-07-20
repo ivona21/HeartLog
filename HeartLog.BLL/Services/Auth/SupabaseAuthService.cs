@@ -24,14 +24,19 @@ public class SupabaseAuthService : IExternalAuthService
         await CreateClientAsync();
     }
 
-    public async Task<ExternalAuthSession> RegisterAsync(string email, string password)
+    public async Task<ExternalAuthRegistrationResult> RegisterAsync(string email, string password)
     {
         try
         {
             var client = await CreateClientAsync();
             var session = await client.Auth.SignUp(email, password);
 
-            return ToExternalAuthSession(session, "registration");
+            return new ExternalAuthRegistrationResult
+            {
+                Email = string.IsNullOrWhiteSpace(session?.User?.Email)
+                    ? email
+                    : session.User.Email
+            };
         }
         catch (ExternalAuthException)
         {
@@ -40,6 +45,83 @@ public class SupabaseAuthService : IExternalAuthService
         catch (Exception ex)
         {
             throw new ExternalAuthException("Supabase registration failed.", ex);
+        }
+    }
+
+    public async Task<ExternalAuthEmailConfirmationResult> ConfirmEmailAsync(string tokenHash, string type)
+    {
+        if (!IsSupportedEmailConfirmationType(type))
+        {
+            throw new ExternalAuthException("Unsupported email confirmation type.");
+        }
+
+        try
+        {
+            var client = await CreateClientAsync();
+            var session = await client.Auth.VerifyTokenHash(
+                tokenHash,
+                Supabase.Gotrue.Constants.EmailOtpType.Email);
+
+            if (session?.User is null)
+            {
+                throw new ExternalAuthException("Supabase email confirmation did not return a user.");
+            }
+
+            if (string.IsNullOrWhiteSpace(session.User.Email))
+            {
+                throw new ExternalAuthException("Supabase email confirmation did not return a user email.");
+            }
+
+            return new ExternalAuthEmailConfirmationResult
+            {
+                Email = session.User.Email
+            };
+        }
+        catch (ExternalAuthException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            throw new ExternalAuthException("Supabase email confirmation failed.", ex);
+        }
+    }
+
+    public async Task ResendConfirmationAsync(string email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            throw new ExternalAuthException("Email is required.");
+        }
+
+        try
+        {
+            using var httpClient = new HttpClient();
+            using var request = new HttpRequestMessage(
+                HttpMethod.Post,
+                $"{_settings.ProjectUrl.TrimEnd('/')}/auth/v1/resend")
+            {
+                Content = JsonContent.Create(new ResendConfirmationRequest(
+                    Type: "signup",
+                    Email: email))
+            };
+
+            request.Headers.Add("apikey", _settings.PublishableKey);
+            request.Headers.Add("Authorization", $"Bearer {_settings.PublishableKey}");
+
+            using var response = await httpClient.SendAsync(request);
+            if ((int)response.StatusCode >= 500)
+            {
+                throw new ExternalAuthException($"Supabase resend confirmation failed with status code {(int)response.StatusCode}.");
+            }
+        }
+        catch (ExternalAuthException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            throw new ExternalAuthException("Supabase resend confirmation failed.", ex);
         }
     }
 
@@ -223,8 +305,17 @@ public class SupabaseAuthService : IExternalAuthService
         return null;
     }
 
+    private static bool IsSupportedEmailConfirmationType(string type)
+    {
+        return string.Equals(type, "email", StringComparison.OrdinalIgnoreCase);
+    }
+
     private sealed record RefreshTokenRequest(
         [property: JsonPropertyName("refresh_token")] string RefreshToken);
+
+    private sealed record ResendConfirmationRequest(
+        [property: JsonPropertyName("type")] string Type,
+        [property: JsonPropertyName("email")] string Email);
 
     private sealed class SupabaseTokenResponse
     {

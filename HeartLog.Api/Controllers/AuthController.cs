@@ -31,19 +31,58 @@ public class AuthController : ControllerBase
 
     [AllowAnonymous]
     [HttpPost("register")]
-    public async Task<ActionResult<ApiResponse<AuthSessionResponseDto>>> Register(UserRegisterDto userDto)
+    public async Task<ActionResult<ApiResponse<AuthRegistrationResponseDto>>> Register(UserRegisterDto userDto)
     {
         User user = UserMapper.ToEntity(userDto);
-        var session = await _userService.RegisterUserAsync(user, userDto.Password);
+        var registration = await _userService.RegisterUserAsync(user, userDto.Password);
 
-        SetRefreshTokenCookie(session);
-
-        return Ok(new ApiResponse<AuthSessionResponseDto>(
+        return Ok(new ApiResponse<AuthRegistrationResponseDto>(
             Success: true,
-            Message: "User registered successfully",
-            Data: UserMapper.ToDto(session)));
+            Message: "Registration successful. Please confirm your email before logging in.",
+            Data: UserMapper.ToDto(registration)));
     }
 
+
+    [AllowAnonymous]
+    [HttpGet("confirm-email")]
+    public async Task<ActionResult<ApiResponse>> ConfirmEmail(
+        [FromQuery(Name = "token_hash")] string tokenHash,
+        [FromQuery] string type)
+    {
+        if (string.IsNullOrWhiteSpace(tokenHash))
+        {
+            return BadRequest(new ErrorResponse
+            {
+                Message = "Email confirmation token is required."
+            });
+        }
+
+        if (string.IsNullOrWhiteSpace(type))
+        {
+            return BadRequest(new ErrorResponse
+            {
+                Message = "Email confirmation type is required."
+            });
+        }
+
+        await _userService.ConfirmEmailAsync(tokenHash, type);
+
+        return Ok(new ApiResponse(
+            Success: true,
+            Message: "Email confirmed successfully"));
+    }
+
+    [AllowAnonymous]
+    [HttpPost("resend-confirmation")]
+    public async Task<ActionResult<ApiResponse>> ResendConfirmation(ResendConfirmationRequestDto request)
+    {
+        await _userService.ResendConfirmationAsync(request.Email);
+
+        return Ok(new ApiResponse(
+            Success: true,
+            Message: "If the account is waiting for confirmation, a new confirmation email has been sent."));
+    }
+    
     [AllowAnonymous]
     [HttpPost("login")]
     public async Task<ActionResult<ApiResponse<AuthSessionResponseDto>>> Login(UserLoginDto userDto)
