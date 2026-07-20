@@ -1,76 +1,33 @@
-# Supabase Mandatory Email Confirmation Plan
+# Supabase Mandatory Email Confirmation
 
-Goal: adjust HeartLog registration for Supabase projects where email confirmation is mandatory.
+This document describes the implemented HeartLog authentication flow for a Supabase project where email confirmation is mandatory.
 
-## Status
+The design keeps Supabase as the identity provider and HeartLog as the application data owner. Supabase owns credentials, email confirmation, access tokens, and refresh tokens. HeartLog stores local application users in the `Users` table and links them to Supabase users through `Users.SupabaseUserId`.
 
-- Step 1 completed: registration now returns a pending-confirmation result instead of an authenticated session.
-- Step 2 completed: login now creates or links the local HeartLog user after Supabase authentication succeeds.
-- Next step: update frontend/auth docs and run the end-to-end manual confirmation flow.
+## Design Summary
 
-## Current Problem
+Registration does not create an authenticated application session. A user registers, receives a Supabase confirmation email, confirms the email through the backend confirmation endpoint, and then logs in. The local HeartLog user row is created or linked only after the first successful Supabase login.
 
-Registration currently assumes Supabase returns a fully authenticated session immediately after signup.
+This separation avoids local application users for accounts that never confirm their email.
 
-That is no longer a valid assumption when Supabase email confirmation is enabled:
+Refresh tokens are stored only in the `heartlog_refresh_token` HttpOnly cookie. Access tokens are returned in JSON for authenticated session responses.
 
-- `POST /api/auth/register` should not log the user in immediately.
-- Registration should not return an access token.
-- Registration should not set the `heartlog_refresh_token` cookie.
-- The user must confirm their email first, then log in.
+## Endpoints
 
-Current code paths affected:
+### POST `/api/auth/register`
 
-- `HeartLog.BLL/Services/Auth/SupabaseAuthService.cs`
-- `HeartLog.BLL/Interfaces/IExternalAuthService.cs`
-- `HeartLog.BLL/Interfaces/IUserService.cs`
-- `HeartLog.BLL/Services/UserService.cs`
-- `HeartLog.Api/Controllers/AuthController.cs`
-- `HeartLog.Api/Mappers/UserMapper.cs`
-- `HeartLog.Api/DTOs/AuthSessionResponseDto.cs`
-- `docs/frontend-auth-flow.md`
-- `docs/frontend-cookie-auth-agent-prompt.md`
+Starts registration for a new account.
 
-`HeartLog.Api/Program.cs` should not need functional changes for this work. CORS already allows credentials, and JWT validation remains relevant for login, refresh, and protected endpoints.
+Request:
 
-## Target Flow
-
-1. User submits registration with email and password.
-2. Backend creates the Supabase auth user.
-3. Backend returns a registration-pending response.
-4. Backend does not create an authenticated HeartLog session.
-5. User confirms email through Supabase email link.
-6. User logs in with email and password.
-7. Backend receives a normal Supabase session.
-8. Backend creates or links the local HeartLog user.
-9. Backend returns access token and sets the HttpOnly refresh-token cookie.
-
-## Step 1: Change Registration Response Contract
-
-Add a registration-specific auth model in BLL, for example:
-
-```csharp
-public class ExternalAuthRegistrationResult
+```json
 {
-    public string Email { get; set; } = string.Empty;
+  "email": "user@example.com",
+  "password": "StrongPass123!"
 }
 ```
 
-Change:
-
-```csharp
-Task<ExternalAuthSession> RegisterAsync(string email, string password);
-```
-
-to:
-
-```csharp
-Task<ExternalAuthRegistrationResult> RegisterAsync(string email, string password);
-```
-
-Also change `IUserService.RegisterUserAsync` to return the registration result instead of `ExternalAuthSession`.
-
-Expected backend response:
+Success response:
 
 ```json
 {
@@ -82,205 +39,375 @@ Expected backend response:
 }
 ```
 
-Implementation notes:
+Application behavior:
 
-- `SupabaseAuthService.RegisterAsync` should call `client.Auth.SignUp(email, password)`.
-- It should not require `AccessToken`, `RefreshToken`, or `Session`.
-- It should return normalized email from Supabase if available; otherwise use the submitted email.
-- Keep duplicate-email behavior controlled by the current local check first.
+- Checks the local `Users` table for an existing email.
+- Calls Supabase signup.
+- Returns a pending-confirmation response.
+- Does not return `accessToken`.
+- Does not set `heartlog_refresh_token`.
+- Does not create a local HeartLog `Users` row.
 
-## Step 2: Stop Creating Auth Session On Register
+Layer flow:
 
-Update `AuthController.Register`:
+1. `AuthController.Register`
+2. `UserMapper.ToEntity`
+3. `UserService.RegisterUserAsync`
+4. `IUserRepository.GetByEmailAsync`
+5. `SupabaseAuthService.RegisterAsync`
+6. `client.Auth.SignUp(email, password)`
+7. `AuthRegistrationResponseDto`
 
-- Return a registration-specific DTO, not `AuthSessionResponseDto`.
-- Remove `SetRefreshTokenCookie(...)` from registration.
-- Keep `SetRefreshTokenCookie(...)` only for login and refresh.
+### GET `/api/auth/confirm-email`
 
-Add API DTO, for example:
+Confirms a Supabase signup email by verifying the Supabase `token_hash`.
 
-```csharp
-public class AuthRegistrationResponseDto
+Request:
+
+```http
+GET /api/auth/confirm-email?token_hash=TOKEN_HASH&type=email
+```
+
+Success response:
+
+```json
 {
-    public string Email { get; set; } = string.Empty;
+  "success": true,
+  "message": "Email confirmed successfully"
 }
 ```
 
-## Step 3: Create Or Link Local User On First Confirmed Login
+Error behavior:
 
-Registration should not create the local `Users` row yet. Create or link the local user only after Supabase login succeeds.
+- Missing `token_hash` returns `400 Bad Request`.
+- Missing `type` returns `400 Bad Request`.
+- Unsupported `type` is rejected.
+- Invalid or expired Supabase token is handled as a controlled authentication provider error.
 
-Update `UserService.LoginUserAsync`:
+Application behavior:
 
-1. Call Supabase login.
-2. Try `GetBySupabaseUserIdAsync(session.User.ProviderUserId)`.
-3. If found, return the session.
-4. If not found, try `GetByEmailAsync(session.User.Email)`.
-5. If a local user exists with `SupabaseUserId == null`, set `SupabaseUserId` and save.
-6. If no local user exists, create a new `User` with:
-   - `Email = session.User.Email`
-   - `SupabaseUserId = session.User.ProviderUserId`
-   - `CreatedAt = DateTime.UtcNow`
-7. Save and return the session.
+- Verifies the token hash with Supabase.
+- Confirms the Supabase Auth user email.
+- Does not create a local HeartLog `Users` row.
+- Does not return `accessToken`.
+- Does not set `heartlog_refresh_token`.
 
-This replaces the current strict behavior where login fails if Supabase auth succeeds but no local HeartLog user exists.
+Layer flow:
 
-Repository impact:
+1. `AuthController.ConfirmEmail`
+2. `UserService.ConfirmEmailAsync`
+3. `SupabaseAuthService.ConfirmEmailAsync`
+4. `client.Auth.VerifyTokenHash(tokenHash, Supabase.Gotrue.Constants.EmailOtpType.Email)`
 
-- Existing `GetByEmailAsync`, `GetBySupabaseUserIdAsync`, `AddUserAsync`, and `SaveChangesAsync` should be enough.
-- No migration should be required because `Users.SupabaseUserId` is already nullable.
+Supabase email templates should generate links using `{{ .TokenHash }}` and `type=email`, pointing at this endpoint.
 
-## Step 4: Keep Refresh Behavior Strict
+Example confirmation email link:
 
-`RefreshSessionAsync` should continue requiring an existing linked local user.
-
-Reason: refresh tokens should only work after a confirmed login has created or linked the local HeartLog user.
-
-No expected change:
-
-- `POST /api/auth/refresh`
-- `SetRefreshTokenCookie`
-- JWT validation in `Program.cs`
-- protected endpoint authentication
-
-## Step 5: Frontend Contract Changes
-
-Frontend registration must change:
-
-- Do not expect `accessToken` from `POST /api/auth/register`.
-- Do not expect a refresh cookie from register.
-- Do not mark the user authenticated after register.
-- Show a "check your email" state after successful registration.
-- After the user confirms email, send them to login.
-- Login remains the only step that starts the authenticated session.
-
-Frontend registration response type:
-
-```ts
-type RegisterResponse = {
-  email: string;
-};
+```html
+<a href="https://YOUR_API_HOST/api/auth/confirm-email?token_hash={{ .TokenHash }}&type=email">
+  Confirm email
+</a>
 ```
 
-Login response type remains unchanged:
+### POST `/api/auth/resend-confirmation`
 
-```ts
-type AuthSessionResponse = {
-  accessToken: string;
-  expiresAt: string | null;
-  email: string;
-};
+Requests another Supabase signup confirmation email.
+
+Request:
+
+```json
+{
+  "email": "user@example.com"
+}
 ```
 
-Requests that need cookies still require credentials:
+Success response:
 
-```ts
-credentials: "include"
+```json
+{
+  "success": true,
+  "message": "If the account is waiting for confirmation, a new confirmation email has been sent."
+}
 ```
 
-This still matters for:
+Application behavior:
 
-- `POST /api/auth/login`
-- `POST /api/auth/refresh`
-- `POST /api/auth/logout`
+- Calls Supabase resend confirmation with `type: "signup"`.
+- Does not reveal whether the email exists.
+- Does not reveal whether the account is already confirmed.
+- Does not create a local HeartLog `Users` row.
+- Does not return tokens.
+- Does not set cookies.
 
-It is harmless to keep it on register, but register should not depend on a cookie.
+Layer flow:
 
-## Step 6: Supabase Configuration To Verify
+1. `AuthController.ResendConfirmation`
+2. `UserService.ResendConfirmationAsync`
+3. `SupabaseAuthService.ResendConfirmationAsync`
+4. `POST {Supabase:ProjectUrl}/auth/v1/resend`
 
-In Supabase dashboard:
+Supabase request body:
 
-- Email confirmation is enabled.
-- Site URL points to the frontend app.
-- Redirect URLs include local and deployed frontend confirmation routes.
+```json
+{
+  "type": "signup",
+  "email": "user@example.com"
+}
+```
 
-Examples:
+Supabase request headers:
+
+```http
+apikey: SUPABASE_PUBLISHABLE_KEY
+Authorization: Bearer SUPABASE_PUBLISHABLE_KEY
+```
+
+The public API response remains generic even when Supabase does not send an email for normal user-state reasons. This prevents account enumeration.
+
+### POST `/api/auth/login`
+
+Authenticates a confirmed Supabase user and starts a HeartLog session.
+
+Request:
+
+```json
+{
+  "email": "user@example.com",
+  "password": "StrongPass123!"
+}
+```
+
+Success response:
+
+```json
+{
+  "success": true,
+  "message": "Login successful",
+  "data": {
+    "accessToken": "...",
+    "expiresAt": "2026-07-20T10:00:00Z",
+    "email": "user@example.com"
+  }
+}
+```
+
+Cookie:
+
+```http
+Set-Cookie: heartlog_refresh_token=...; HttpOnly; Path=/api/auth; ...
+```
+
+Application behavior:
+
+- Calls Supabase login.
+- Supabase rejects unconfirmed users.
+- Creates or links the local HeartLog user after Supabase authentication succeeds.
+- Returns the Supabase access token in JSON.
+- Stores the Supabase refresh token in the HttpOnly cookie.
+- Does not expose the refresh token in JSON.
+
+Layer flow:
+
+1. `AuthController.Login`
+2. `UserService.LoginUserAsync`
+3. `SupabaseAuthService.LoginAsync`
+4. `client.Auth.SignIn(email, password)`
+5. `UserService.EnsureLocalUserExistsOrCreateAsync`
+6. `AuthController.SetRefreshTokenCookie`
+7. `AuthSessionResponseDto`
+
+Local user linking logic:
+
+1. Look up local user by `SupabaseUserId`.
+2. If found, continue.
+3. If not found, look up local user by email.
+4. If found and `SupabaseUserId` is empty, set it to the Supabase user id.
+5. If no local user exists, create one with the Supabase email and user id.
+6. If the email belongs to a local user linked to a different Supabase id, reject the login.
+
+### POST `/api/auth/refresh`
+
+Exchanges the HttpOnly refresh-token cookie for a fresh access token.
+
+Request:
+
+```http
+POST /api/auth/refresh
+Cookie: heartlog_refresh_token=...
+```
+
+Success response:
+
+```json
+{
+  "success": true,
+  "message": "Session refreshed successfully",
+  "data": {
+    "accessToken": "...",
+    "expiresAt": "2026-07-20T11:00:00Z",
+    "email": "user@example.com"
+  }
+}
+```
+
+Application behavior:
+
+- Reads `heartlog_refresh_token`.
+- Exchanges it with Supabase.
+- Requires that the Supabase user is already linked to a local HeartLog user.
+- Returns a fresh access token.
+- Sets or rotates the refresh-token cookie.
+
+Layer flow:
+
+1. `AuthController.Refresh`
+2. `UserService.RefreshSessionAsync`
+3. `SupabaseAuthService.RefreshAsync`
+4. `POST {Supabase:ProjectUrl}/auth/v1/token?grant_type=refresh_token`
+5. `UserService.EnsureLocalUserExistsAsync`
+6. `AuthController.SetRefreshTokenCookie`
+7. `AuthSessionResponseDto`
+
+### GET `/api/auth/me`
+
+Returns the current local HeartLog user for a valid Supabase access token.
+
+Request:
+
+```http
+GET /api/auth/me
+Authorization: Bearer ACCESS_TOKEN
+```
+
+Success response:
+
+```json
+{
+  "success": true,
+  "message": "Current user retrieved successfully",
+  "data": {
+    "id": "local-heartlog-user-id",
+    "username": null,
+    "email": "user@example.com"
+  }
+}
+```
+
+Application behavior:
+
+- JWT bearer middleware validates the Supabase JWT.
+- `CurrentUserService` reads the Supabase `sub` claim.
+- The local user is loaded by `Users.SupabaseUserId`.
+
+Layer flow:
+
+1. ASP.NET JWT bearer authentication
+2. `AuthController.GetCurrentUser`
+3. `CurrentUserService.GetCurrentUserAsync`
+4. `IUserRepository.GetBySupabaseUserIdAsync`
+5. `UserMeResponseDto`
+
+### POST `/api/auth/logout`
+
+Clears the HeartLog refresh-token cookie.
+
+Request:
+
+```http
+POST /api/auth/logout
+Cookie: heartlog_refresh_token=...
+```
+
+Success response:
+
+```json
+{
+  "success": true,
+  "message": "Logout successful"
+}
+```
+
+Application behavior:
+
+- Deletes the `heartlog_refresh_token` cookie.
+- Does not currently revoke the Supabase refresh token server-side.
+- Frontend should clear its local access token and authenticated app state.
+
+Layer flow:
+
+1. `AuthController.Logout`
+2. `RefreshTokenCookie.CreateDeleteOptions`
+3. `Response.Cookies.Delete`
+
+## Data Ownership
+
+Supabase Auth stores:
+
+- email/password credentials
+- email confirmation state
+- Supabase user id
+- access tokens
+- refresh tokens
+
+HeartLog stores:
+
+- local application user id
+- user email
+- optional username
+- `SupabaseUserId`
+- user-owned HeartLog data
+
+Registration intentionally creates only a Supabase Auth user. The local HeartLog user is created or linked during confirmed login.
+
+## Cookie Model
+
+Cookie name:
 
 ```text
-http://localhost:5173/auth/confirmed
-https://heart-log-calm.vercel.app/auth/confirmed
+heartlog_refresh_token
 ```
 
-The frontend route can simply tell the user email confirmation succeeded and offer a login button.
+Cookie path:
 
-## Step 7: Manual Test Plan
+```text
+/api/auth
+```
 
-### New User Registration
+Cookie properties:
 
-1. Pick a brand-new email.
-2. Call `POST /api/auth/register`.
-3. Expected:
-   - `200 OK`
-   - response contains the registered email
-   - response does not contain `accessToken`
-   - response does not set `heartlog_refresh_token`
-4. Verify Supabase sends confirmation email.
+- `HttpOnly = true`
+- development: `SameSite=Lax`, `Secure=false`
+- non-development: `SameSite=None`, `Secure=true`
 
-### Login Before Confirmation
+The refresh token is never returned in JSON. The frontend stores only access-token session data returned by login or refresh.
 
-1. Try `POST /api/auth/login` before clicking confirmation email.
-2. Expected:
-   - login fails with `401` or controlled auth error.
-   - no refresh cookie is set.
-   - no authenticated frontend state is created.
+## Supabase Configuration
 
-### Login After Confirmation
+Email confirmation must be enabled in Supabase Auth settings.
 
-1. Click the Supabase email confirmation link.
-2. Call `POST /api/auth/login`.
-3. Expected:
-   - `200 OK`
-   - response contains `accessToken`, `expiresAt`, and `email`
-   - response sets `heartlog_refresh_token`
-   - local `Users` row is created or linked.
+The confirmation email should point to the backend confirmation endpoint with Supabase's token hash:
 
-### Current User
+```html
+<a href="https://YOUR_API_HOST/api/auth/confirm-email?token_hash={{ .TokenHash }}&type=email">
+  Confirm email
+</a>
+```
 
-1. Call `GET /api/auth/me` with the login access token.
-2. Expected:
-   - `200 OK`
-   - response returns local HeartLog user id and email.
+For local API testing:
 
-### Refresh
+```html
+<a href="http://localhost:5048/api/auth/confirm-email?token_hash={{ .TokenHash }}&type=email">
+  Confirm email
+</a>
+```
 
-1. Call `POST /api/auth/refresh` with browser credentials/cookie.
-2. Expected:
-   - `200 OK`
-   - response returns a fresh access token.
-   - refresh cookie is kept or rotated.
+## Reuse Notes
 
-### Existing User Regression
+To reuse this flow in another backend:
 
-1. Login with an already confirmed existing user.
-2. Expected:
-   - login still succeeds.
-   - `/api/auth/me` still succeeds.
-   - refresh still succeeds.
-
-### Error Regression
-
-Verify:
-
-- Bad password returns `401`.
-- Duplicate registration email returns the existing controlled registration error.
-- Protected endpoints reject missing or expired tokens.
-- Refresh fails without the refresh cookie.
-
-## Step 8: Documentation Updates
-
-Update frontend docs after implementation:
-
-- `docs/frontend-auth-flow.md`
-- `docs/frontend-cookie-auth-agent-prompt.md`
-
-Registration section should no longer say register returns the same session shape as login and refresh.
-
-## Implementation Order
-
-1. Add registration result models and DTOs.
-2. Change BLL/service/controller registration return types.
-3. Remove refresh-cookie creation from register.
-4. Add login-time local user creation/linking.
-5. Build and fix compile errors.
-6. Update docs.
-7. Run manual tests against Supabase email confirmation.
+1. Treat registration as pending confirmation, not authentication.
+2. Verify email confirmation through Supabase `token_hash`.
+3. Create local application users only after confirmed login.
+4. Store refresh tokens in HttpOnly cookies.
+5. Keep resend-confirmation responses generic to avoid account enumeration.
+6. Resolve protected-resource ownership from the authenticated Supabase user id, not from frontend-provided user ids.
