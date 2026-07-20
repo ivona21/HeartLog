@@ -45,11 +45,31 @@ public class AuthController : ControllerBase
 
     [AllowAnonymous]
     [HttpGet("confirm-email")]
-    public async Task<ActionResult<ApiResponse>> ConfirmEmail( [FromQuery(Name = "token_hash")] string tokenHash,
+    public async Task<ActionResult<ApiResponse>> ConfirmEmail(
+        [FromQuery(Name = "token_hash")] string tokenHash,
         [FromQuery] string type)
     {
-        return new ApiResponse(
-            Success: true, Message: "Email confirmed successfully");
+        if (string.IsNullOrWhiteSpace(tokenHash))
+        {
+            return BadRequest(new ErrorResponse
+            {
+                Message = "Email confirmation token is required."
+            });
+        }
+
+        if (string.IsNullOrWhiteSpace(type))
+        {
+            return BadRequest(new ErrorResponse
+            {
+                Message = "Email confirmation type is required."
+            });
+        }
+
+        await _userService.ConfirmEmailAsync(tokenHash, type);
+
+        return Ok(new ApiResponse(
+            Success: true,
+            Message: "Email confirmed successfully"));
     }
     
     [AllowAnonymous]

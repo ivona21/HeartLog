@@ -10,6 +10,7 @@ Completed:
 
 - Step 1: `POST /api/auth/register` returns a pending-confirmation response instead of an authenticated session.
 - Step 2: `POST /api/auth/login` creates or links the local HeartLog user after Supabase authentication succeeds.
+- Step 3: `GET /api/auth/confirm-email` verifies Supabase `token_hash` with `VerifyTokenHash`.
 - Register no longer returns `accessToken`.
 - Register no longer sets `heartlog_refresh_token`.
 - Register no longer creates a local `Users` row.
@@ -19,7 +20,6 @@ Completed:
 
 Not completed:
 
-- `GET /api/auth/confirm-email` exists but is currently a dummy endpoint. It does not verify the Supabase token.
 - `POST /api/auth/resend-confirmation` does not exist yet.
 - Supabase email template/redirect configuration still needs to be aligned with the backend confirmation endpoint.
 - Frontend auth docs still need updating.
@@ -79,7 +79,7 @@ Future improvement:
 
 ### GET `/api/auth/confirm-email`
 
-Status: route exists, but implementation is missing.
+Status: implemented.
 
 Purpose:
 
@@ -118,9 +118,9 @@ Recommended error behavior:
 - Unsupported `type`: `400 Bad Request`.
 - Invalid or expired token: controlled auth error, preferably `400 Bad Request`.
 
-Required deeper-layer changes:
+Implemented deeper-layer changes:
 
-1. Add auth result model if useful:
+1. Added auth result model:
 
 ```csharp
 public class ExternalAuthEmailConfirmationResult
@@ -129,13 +129,13 @@ public class ExternalAuthEmailConfirmationResult
 }
 ```
 
-2. Extend `IExternalAuthService`:
+2. Extended `IExternalAuthService`:
 
 ```csharp
 Task<ExternalAuthEmailConfirmationResult> ConfirmEmailAsync(string tokenHash, string type);
 ```
 
-3. Implement `SupabaseAuthService.ConfirmEmailAsync`.
+3. Implemented `SupabaseAuthService.ConfirmEmailAsync`.
 
 Supabase verification should use the equivalent of:
 
@@ -146,38 +146,18 @@ supabase.auth.verifyOtp({
 });
 ```
 
-Implementation detail for .NET:
+Implementation detail:
 
-- First check whether the installed Supabase .NET package exposes a `VerifyOTP`/`VerifyOtp` method for token hash.
-- If not, call Supabase Auth REST API directly.
-- The expected Supabase endpoint is likely under:
+- The installed Supabase.Gotrue package exposes `VerifyTokenHash`.
+- The implementation uses `client.Auth.VerifyTokenHash(tokenHash, Supabase.Gotrue.Constants.EmailOtpType.Email)`.
 
-```text
-POST {ProjectUrl}/auth/v1/verify
-```
-
-with the publishable key header:
-
-```text
-apikey: {PublishableKey}
-```
-
-and JSON body shaped around `token_hash` and `type`.
-
-Before implementing, inspect the current Supabase .NET SDK API or official Supabase docs to confirm exact method/body names.
-
-4. Extend `IUserService` only if keeping auth orchestration in `UserService`:
+4. Extended `IUserService`:
 
 ```csharp
 Task ConfirmEmailAsync(string tokenHash, string type);
 ```
 
-Alternative:
-
-- Introduce a dedicated auth application service later if `UserService` becomes too broad.
-- For now, keep changes pragmatic and use `UserService`/`IExternalAuthService` to match existing code.
-
-5. Replace dummy `AuthController.ConfirmEmail` logic with real service call.
+5. Replaced dummy `AuthController.ConfirmEmail` logic with real service call.
 
 Controller shape:
 
@@ -626,26 +606,25 @@ Files touched:
 
 - `HeartLog.BLL/Services/UserService.cs`
 
-### Next Step 3: Implement Real Email Confirmation Endpoint
+### Completed Step 3: Implement Real Email Confirmation Endpoint
 
-Goal:
+Done.
 
-- Replace dummy `ConfirmEmail` with real Supabase token verification.
+Files touched:
 
-Work items:
+- `HeartLog.BLL/Models/Auth/ExternalAuthEmailConfirmationResult.cs`
+- `HeartLog.BLL/Interfaces/IExternalAuthService.cs`
+- `HeartLog.BLL/Interfaces/IUserService.cs`
+- `HeartLog.BLL/Services/Auth/SupabaseAuthService.cs`
+- `HeartLog.BLL/Services/UserService.cs`
+- `HeartLog.Api/Controllers/AuthController.cs`
 
-1. Inspect Supabase .NET SDK support for token hash verification.
-2. If SDK support is insufficient, implement direct REST call in `SupabaseAuthService`.
-3. Add BLL model if needed.
-4. Extend `IExternalAuthService`.
-5. Extend `IUserService`.
-6. Implement `UserService.ConfirmEmailAsync`.
-7. Replace dummy controller logic.
-8. Add validation for missing token/type.
-9. Build.
-10. Test with Supabase confirmation email.
+Verification:
 
-### Step 4: Add Resend Confirmation Endpoint
+- BLL build passed.
+- API build could not complete in this environment because `dotnet build HeartLog.Api/HeartLog.Api.csproj` repeatedly hung silently and had to be stopped.
+
+### Next Step 4: Add Resend Confirmation Endpoint
 
 Goal:
 

@@ -36,6 +36,11 @@ public class UserService: IUserService
         return await _externalAuthService.RegisterAsync(user.Email, password);
     }
 
+    public async Task<ExternalAuthEmailConfirmationResult> ConfirmEmailAsync(string tokenHash, string type)
+    {
+        return await _externalAuthService.ConfirmEmailAsync(tokenHash, type);
+    }
+
     public async Task<ExternalAuthSession> LoginUserAsync(string email, string password)
     {
         var session = await _externalAuthService.LoginAsync(email, password);
