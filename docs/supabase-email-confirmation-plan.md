@@ -11,6 +11,7 @@ Completed:
 - Step 1: `POST /api/auth/register` returns a pending-confirmation response instead of an authenticated session.
 - Step 2: `POST /api/auth/login` creates or links the local HeartLog user after Supabase authentication succeeds.
 - Step 3: `GET /api/auth/confirm-email` verifies Supabase `token_hash` with `VerifyTokenHash`.
+- Step 4: `POST /api/auth/resend-confirmation` requests Supabase to resend signup confirmation.
 - Register no longer returns `accessToken`.
 - Register no longer sets `heartlog_refresh_token`.
 - Register no longer creates a local `Users` row.
@@ -20,7 +21,6 @@ Completed:
 
 Not completed:
 
-- `POST /api/auth/resend-confirmation` does not exist yet.
 - Supabase email template/redirect configuration still needs to be aligned with the backend confirmation endpoint.
 - Frontend auth docs still need updating.
 - End-to-end manual testing still needs to be completed.
@@ -178,7 +178,7 @@ Important:
 
 ### POST `/api/auth/resend-confirmation`
 
-Status: missing; should be added.
+Status: implemented.
 
 Purpose:
 
@@ -208,9 +208,9 @@ Security behavior:
 - Use the same success response for normal user-facing cases.
 - Only expose generic controlled errors for provider outages or invalid request shape.
 
-Required deeper-layer changes:
+Implemented deeper-layer changes:
 
-1. Add DTO:
+1. Added DTO:
 
 ```csharp
 public class ResendConfirmationRequestDto
@@ -221,13 +221,13 @@ public class ResendConfirmationRequestDto
 }
 ```
 
-2. Extend `IExternalAuthService`:
+2. Extended `IExternalAuthService`:
 
 ```csharp
 Task ResendConfirmationAsync(string email);
 ```
 
-3. Implement `SupabaseAuthService.ResendConfirmationAsync`.
+3. Implemented `SupabaseAuthService.ResendConfirmationAsync`.
 
 Supabase resend should use the equivalent of:
 
@@ -238,19 +238,20 @@ supabase.auth.resend({
 });
 ```
 
-Implementation detail for .NET:
+Implementation detail:
 
-- First check whether the installed Supabase .NET package exposes resend confirmation.
-- If not, call Supabase Auth REST API directly.
-- Confirm exact REST endpoint/body from official Supabase docs before coding.
+- The installed Supabase.Gotrue package does not expose resend confirmation.
+- The implementation calls `POST {ProjectUrl}/auth/v1/resend` directly.
+- Request body uses `type: "signup"` and `email`.
+- The response exposed to clients remains generic.
 
-4. Extend `IUserService` if following current service style:
+4. Extended `IUserService`:
 
 ```csharp
 Task ResendConfirmationAsync(string email);
 ```
 
-5. Add controller action:
+5. Added controller action:
 
 ```csharp
 [AllowAnonymous]
@@ -624,25 +625,25 @@ Verification:
 - BLL build passed.
 - API build could not complete in this environment because `dotnet build HeartLog.Api/HeartLog.Api.csproj` repeatedly hung silently and had to be stopped.
 
-### Next Step 4: Add Resend Confirmation Endpoint
+### Completed Step 4: Add Resend Confirmation Endpoint
 
-Goal:
+Done.
 
-- Add `POST /api/auth/resend-confirmation`.
+Files touched:
 
-Work items:
+- `HeartLog.Api/DTOs/ResendConfirmationRequestDto.cs`
+- `HeartLog.BLL/Interfaces/IExternalAuthService.cs`
+- `HeartLog.BLL/Interfaces/IUserService.cs`
+- `HeartLog.BLL/Services/Auth/SupabaseAuthService.cs`
+- `HeartLog.BLL/Services/UserService.cs`
+- `HeartLog.Api/Controllers/AuthController.cs`
 
-1. Add `ResendConfirmationRequestDto`.
-2. Inspect Supabase .NET SDK support for resend confirmation.
-3. If SDK support is insufficient, implement direct REST call in `SupabaseAuthService`.
-4. Extend `IExternalAuthService`.
-5. Extend `IUserService`.
-6. Implement controller endpoint.
-7. Use generic response message.
-8. Build.
-9. Test with unconfirmed user.
+Verification:
 
-### Step 5: Configure Supabase Email Template
+- BLL build passed.
+- API build could not complete in this environment because `dotnet build HeartLog.Api/HeartLog.Api.csproj` hung silently and had to be stopped.
+
+### Next Step 5: Configure Supabase Email Template
 
 Goal:
 
