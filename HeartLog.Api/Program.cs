@@ -69,6 +69,13 @@ builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new() { Title = "HeartLog API", Version = "v1" });
     c.EnableAnnotations();
+    c.SupportNonNullableReferenceTypes();
+
+    var xmlCommentsPath = Path.Combine(AppContext.BaseDirectory, "HeartLog.Api.xml");
+    if (File.Exists(xmlCommentsPath))
+    {
+        c.IncludeXmlComments(xmlCommentsPath);
+    }
 
     // JWT Authentication setup
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
