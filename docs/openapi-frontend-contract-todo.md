@@ -37,13 +37,13 @@ Scope rule: OpenAPI/documentation-only changes should not alter runtime behavior
 
 ## Controller Response Metadata
 
-- [ ] OPENAPI-017: Add `[Produces("application/json")]` at controller or global level.
-- [ ] OPENAPI-018: Add `[Consumes("application/json")]` to POST endpoints that accept JSON bodies.
-- [ ] OPENAPI-019: Add `[ProducesResponseType]` for success responses on every action.
-- [ ] OPENAPI-020: Add `[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]` where validation or domain input errors can happen.
-- [ ] OPENAPI-021: Add `[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]` for authenticated endpoints and auth failure flows.
-- [ ] OPENAPI-022: Add `[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]` where duplicate/conflict errors can happen.
-- [ ] OPENAPI-023: Add `[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]` if the frontend should model generic server errors.
+- [x] OPENAPI-017: Add `[Produces("application/json")]` at controller or global level.
+- [x] OPENAPI-018: Add `[Consumes("application/json")]` to POST endpoints that accept JSON bodies.
+- [x] OPENAPI-019: Add `[ProducesResponseType]` for success responses on every action.
+- [x] OPENAPI-020: Add `[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]` where validation or domain input errors can happen.
+- [x] OPENAPI-021: Add `[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]` for authenticated endpoints and auth failure flows.
+- [x] OPENAPI-022: Add `[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]` where duplicate/conflict errors can happen.
+- [x] OPENAPI-023: Add `[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]` if the frontend should model generic server errors.
 
 ## Typed Action Results
 

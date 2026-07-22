@@ -10,6 +10,7 @@ namespace HeartLog.Api.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/emotion-entries")]
+[Produces("application/json")]
 [SwaggerTag("Authenticated emotion entry endpoints.")]
 public class EmotionEntriesController : ControllerBase
 {
@@ -25,6 +26,9 @@ public class EmotionEntriesController : ControllerBase
     }
 
     [HttpGet]
+    [ProducesResponseType(typeof(ApiResponse<IEnumerable<EmotionEntryResponse>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     [SwaggerOperation(OperationId = "EmotionEntries_GetAll")]
     public async Task<IActionResult> GetEmotionEntries(CancellationToken cancellationToken)
     {
@@ -38,6 +42,11 @@ public class EmotionEntriesController : ControllerBase
     }
 
     [HttpPost]
+    [Consumes("application/json")]
+    [ProducesResponseType(typeof(ApiResponse<EmotionEntryResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     [SwaggerOperation(OperationId = "EmotionEntries_Create")]
     public async Task<IActionResult> CreateEmotionEntry(CreateEmotionEntryRequest request, CancellationToken cancellationToken)
     {
@@ -58,6 +67,9 @@ public class EmotionEntriesController : ControllerBase
     }
 
     [HttpGet("summary")]
+    [ProducesResponseType(typeof(ApiResponse<EmotionEntriesSummaryResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     [SwaggerOperation(OperationId = "EmotionEntries_GetSummary")]
     public async Task<IActionResult> GetSummary(CancellationToken cancellationToken)
     {

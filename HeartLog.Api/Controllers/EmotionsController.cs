@@ -8,6 +8,7 @@ namespace HeartLog.Api.Controllers;
 
 [ApiController]
 [Route("api/emotions")]
+[Produces("application/json")]
 [SwaggerTag("Emotion tree endpoints.")]
 public class EmotionsController : ControllerBase
 {
@@ -19,6 +20,8 @@ public class EmotionsController : ControllerBase
     }
 
     [HttpGet]
+    [ProducesResponseType(typeof(ApiResponse<IEnumerable<EmotionTreeNodeDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     [SwaggerOperation(OperationId = "Emotions_GetTree")]
     public async Task<IActionResult> GetEmotions([FromQuery] string locale = "en")
     {

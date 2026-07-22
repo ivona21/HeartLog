@@ -9,6 +9,7 @@ namespace HeartLog.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Produces("application/json")]
 [SwaggerTag("Item endpoints.")]
 public class ItemsController: ControllerBase
 {
@@ -20,6 +21,8 @@ public class ItemsController: ControllerBase
     }
     
     [HttpGet]
+    [ProducesResponseType(typeof(ApiResponse<IEnumerable<ItemDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     [SwaggerOperation(OperationId = "Items_GetAll")]
     public async Task<IActionResult> GetItems()
     {
@@ -38,6 +41,10 @@ public class ItemsController: ControllerBase
     }
 
     [HttpPost]
+    [Consumes("application/json")]
+    [ProducesResponseType(typeof(ApiResponse<ItemDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     [SwaggerOperation(OperationId = "Items_Save")]
     public async Task<IActionResult> SaveItem(ItemDto item)
     {
