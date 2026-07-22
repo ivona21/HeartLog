@@ -8,6 +8,7 @@ using HeartLog.DAL.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Hosting;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace HeartLog.Api.Controllers;
 
@@ -31,6 +32,7 @@ public class AuthController : ControllerBase
 
     [AllowAnonymous]
     [HttpPost("register")]
+    [SwaggerOperation(OperationId = "Auth_Register")]
     public async Task<ActionResult<ApiResponse<AuthRegistrationResponseDto>>> Register(UserRegisterDto userDto)
     {
         User user = UserMapper.ToEntity(userDto);
@@ -45,6 +47,7 @@ public class AuthController : ControllerBase
 
     [AllowAnonymous]
     [HttpGet("confirm-email")]
+    [SwaggerOperation(OperationId = "Auth_ConfirmEmail")]
     public async Task<ActionResult<ApiResponse>> ConfirmEmail(
         [FromQuery(Name = "token_hash")] string tokenHash,
         [FromQuery] string type)
@@ -74,6 +77,7 @@ public class AuthController : ControllerBase
 
     [AllowAnonymous]
     [HttpPost("resend-confirmation")]
+    [SwaggerOperation(OperationId = "Auth_ResendConfirmation")]
     public async Task<ActionResult<ApiResponse>> ResendConfirmation(ResendConfirmationRequestDto request)
     {
         await _userService.ResendConfirmationAsync(request.Email);
@@ -85,6 +89,7 @@ public class AuthController : ControllerBase
     
     [AllowAnonymous]
     [HttpPost("login")]
+    [SwaggerOperation(OperationId = "Auth_Login")]
     public async Task<ActionResult<ApiResponse<AuthSessionResponseDto>>> Login(UserLoginDto userDto)
     {
         var session = await _userService.LoginUserAsync(userDto.Email, userDto.Password);
@@ -99,6 +104,7 @@ public class AuthController : ControllerBase
 
     [AllowAnonymous]
     [HttpPost("refresh")]
+    [SwaggerOperation(OperationId = "Auth_Refresh")]
     public async Task<ActionResult<ApiResponse<AuthSessionResponseDto>>> Refresh()
     {
         if (!Request.Cookies.TryGetValue(RefreshTokenCookie.Name, out var refreshToken)
@@ -119,6 +125,7 @@ public class AuthController : ControllerBase
 
     [AllowAnonymous]
     [HttpPost("logout")]
+    [SwaggerOperation(OperationId = "Auth_Logout")]
     public ActionResult<ApiResponse> Logout()
     {
         Response.Cookies.Delete(
@@ -132,6 +139,7 @@ public class AuthController : ControllerBase
 
     [Authorize]
     [HttpGet("me")]
+    [SwaggerOperation(OperationId = "Auth_GetCurrentUser")]
     public async Task<ActionResult<ApiResponse<UserMeResponseDto>>> GetCurrentUser()
     {
         var currentUser = await _currentUserService.GetCurrentUserAsync(User);
@@ -144,12 +152,14 @@ public class AuthController : ControllerBase
 
     [Authorize]
     [HttpGet("confidential")]
+    [SwaggerOperation(OperationId = "Auth_GetConfidential")]
     public async Task<ActionResult<ApiResponse>> GetSomethingConfidential()
     {
         return Ok(new ApiResponse(Success: true, Message: "Something confidential"));
     }
 
     [HttpGet("ping")]
+    [SwaggerOperation(OperationId = "Auth_Ping")]
     public async Task<ActionResult<ApiResponse>> Ping()
     {
         return Ok(new ApiResponse(Success: true, Message: "Pong"));

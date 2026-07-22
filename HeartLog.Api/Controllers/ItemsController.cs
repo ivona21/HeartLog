@@ -3,6 +3,7 @@ using HeartLog.Api.Mappers;
 using HeartLog.BLL.Interfaces;
 using HeartLog.DAL.Models;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace HeartLog.Api.Controllers;
 
@@ -18,6 +19,7 @@ public class ItemsController: ControllerBase
     }
     
     [HttpGet]
+    [SwaggerOperation(OperationId = "Items_GetAll")]
     public async Task<IActionResult> GetItems()
     {
         IEnumerable<Item> items = await _itemService.GetAllItemsAsync();
@@ -35,6 +37,7 @@ public class ItemsController: ControllerBase
     }
 
     [HttpPost]
+    [SwaggerOperation(OperationId = "Items_Save")]
     public async Task<IActionResult> SaveItem(ItemDto item)
     {
         await _itemService.AddItemAsync(new Item { Name = item.Name });

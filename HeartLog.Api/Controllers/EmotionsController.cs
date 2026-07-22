@@ -2,6 +2,7 @@ using HeartLog.Api.DTOs;
 using HeartLog.Api.Mappers;
 using HeartLog.BLL.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace HeartLog.Api.Controllers;
 
@@ -17,6 +18,7 @@ public class EmotionsController : ControllerBase
     }
 
     [HttpGet]
+    [SwaggerOperation(OperationId = "Emotions_GetTree")]
     public async Task<IActionResult> GetEmotions([FromQuery] string locale = "en")
     {
         var emotions = await _emotionService.GetEmotionTreeAsync(locale);

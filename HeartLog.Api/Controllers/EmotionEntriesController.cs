@@ -3,6 +3,7 @@ using HeartLog.Api.Mappers;
 using HeartLog.BLL.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace HeartLog.Api.Controllers;
 
@@ -23,6 +24,7 @@ public class EmotionEntriesController : ControllerBase
     }
 
     [HttpGet]
+    [SwaggerOperation(OperationId = "EmotionEntries_GetAll")]
     public async Task<IActionResult> GetEmotionEntries(CancellationToken cancellationToken)
     {
         var user = await _currentUserService.GetCurrentUserAsync(User, cancellationToken);
@@ -35,6 +37,7 @@ public class EmotionEntriesController : ControllerBase
     }
 
     [HttpPost]
+    [SwaggerOperation(OperationId = "EmotionEntries_Create")]
     public async Task<IActionResult> CreateEmotionEntry(CreateEmotionEntryRequest request, CancellationToken cancellationToken)
     {
         var user = await _currentUserService.GetCurrentUserAsync(User, cancellationToken);
@@ -54,6 +57,7 @@ public class EmotionEntriesController : ControllerBase
     }
 
     [HttpGet("summary")]
+    [SwaggerOperation(OperationId = "EmotionEntries_GetSummary")]
     public async Task<IActionResult> GetSummary(CancellationToken cancellationToken)
     {
         var user = await _currentUserService.GetCurrentUserAsync(User, cancellationToken);
