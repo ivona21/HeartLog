@@ -90,7 +90,9 @@ public class AuthController : ControllerBase
     
     [AllowAnonymous]
     [HttpPost("login")]
-    [SwaggerOperation(OperationId = "Auth_Login")]
+    [SwaggerOperation(
+        OperationId = "Auth_Login",
+        Description = "Returns an access token in the response body and sets the HTTP-only heartlog_refresh_token cookie for session refresh.")]
     public async Task<ActionResult<ApiResponse<AuthSessionResponseDto>>> Login(UserLoginDto userDto)
     {
         var session = await _userService.LoginUserAsync(userDto.Email, userDto.Password);
@@ -105,7 +107,9 @@ public class AuthController : ControllerBase
 
     [AllowAnonymous]
     [HttpPost("refresh")]
-    [SwaggerOperation(OperationId = "Auth_Refresh")]
+    [SwaggerOperation(
+        OperationId = "Auth_Refresh",
+        Description = "Reads the HTTP-only heartlog_refresh_token cookie, returns a new access token in the response body, and renews the refresh cookie. Frontend requests must include credentials.")]
     public async Task<ActionResult<ApiResponse<AuthSessionResponseDto>>> Refresh()
     {
         if (!Request.Cookies.TryGetValue(RefreshTokenCookie.Name, out var refreshToken)
@@ -126,7 +130,9 @@ public class AuthController : ControllerBase
 
     [AllowAnonymous]
     [HttpPost("logout")]
-    [SwaggerOperation(OperationId = "Auth_Logout")]
+    [SwaggerOperation(
+        OperationId = "Auth_Logout",
+        Description = "Clears the HTTP-only heartlog_refresh_token cookie. Frontend requests must include credentials.")]
     public ActionResult<ApiResponse> Logout()
     {
         Response.Cookies.Delete(

@@ -7,6 +7,7 @@ Scope rule: OpenAPI/documentation-only changes should not alter runtime behavior
 ## Decisions
 
 - OPENAPI-002: The generated OpenAPI artifact should be committed at `openapi/heartlog.openapi.json`. The frontend should consume that stable file for contract generation. CI or a local verification workflow can later regenerate the file and fail if it is stale.
+- OPENAPI-016: Supabase implementation details stay outside the public OpenAPI contract. Controllers expose only HeartLog request/response DTOs and documented auth behavior.
 
 ## Safe Metadata And Export
 
@@ -23,16 +24,16 @@ Scope rule: OpenAPI/documentation-only changes should not alter runtime behavior
 
 ## Auth And Security Contract
 
-- [ ] OPENAPI-011: Replace global Swagger Bearer security requirement with an operation filter that applies Bearer auth only to actions/controllers with `[Authorize]`.
-- [ ] OPENAPI-012: Keep `[AllowAnonymous]` explicit on public auth endpoints.
-- [ ] OPENAPI-013: Document that access tokens are returned in JSON from login/refresh responses.
-- [ ] OPENAPI-014: Document the HTTP-only refresh token cookie:
+- [x] OPENAPI-011: Replace global Swagger Bearer security requirement with an operation filter that applies Bearer auth only to actions/controllers with `[Authorize]`.
+- [x] OPENAPI-012: Keep `[AllowAnonymous]` explicit on public auth endpoints.
+- [x] OPENAPI-013: Document that access tokens are returned in JSON from login/refresh responses.
+- [x] OPENAPI-014: Document the HTTP-only refresh token cookie:
   - name: `heartlog_refresh_token`
   - path: `/api/auth`
   - used by: `POST /api/auth/refresh`
   - frontend requirement: requests must include credentials
-- [ ] OPENAPI-015: Document `POST /api/auth/logout` as clearing the refresh-token cookie.
-- [ ] OPENAPI-016: Confirm that Supabase internals remain outside the public OpenAPI contract.
+- [x] OPENAPI-015: Document `POST /api/auth/logout` as clearing the refresh-token cookie.
+- [x] OPENAPI-016: Confirm that Supabase internals remain outside the public OpenAPI contract.
 
 ## Controller Response Metadata
 

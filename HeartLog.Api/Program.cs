@@ -11,6 +11,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 
 using HeartLog.Api.Middleware;
+using HeartLog.Api.OpenApi;
 using HeartLog.BLL.Models.Auth;
 using HeartLog.BLL.Services.Auth;
 using HeartLog.DAL.Seeding;
@@ -86,21 +87,7 @@ builder.Services.AddSwaggerGen(c =>
         Type = SecuritySchemeType.Http,
         Scheme = "bearer"
     });
-
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
-        {
-            new OpenApiSecurityScheme
-            {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                }
-            },
-            Array.Empty<string>()
-        }
-    });
+    c.OperationFilter<AuthorizeOperationFilter>();
 });
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
