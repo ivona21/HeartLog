@@ -47,12 +47,12 @@ Scope rule: OpenAPI/documentation-only changes should not alter runtime behavior
 
 ## Typed Action Results
 
-- [ ] OPENAPI-024: Change `EmotionsController.GetEmotions` from `IActionResult` to `ActionResult<ApiResponse<IEnumerable<EmotionTreeNodeDto>>>`.
-- [ ] OPENAPI-025: Change `EmotionEntriesController.GetEmotionEntries` from `IActionResult` to `ActionResult<ApiResponse<IEnumerable<EmotionEntryResponse>>>`.
-- [ ] OPENAPI-026: Change `EmotionEntriesController.CreateEmotionEntry` from `IActionResult` to `ActionResult<ApiResponse<EmotionEntryResponse>>`.
-- [ ] OPENAPI-027: Change `EmotionEntriesController.GetSummary` from `IActionResult` to `ActionResult<ApiResponse<EmotionEntriesSummaryResponse>>`.
-- [ ] OPENAPI-028: Change `ItemsController.GetItems` from `IActionResult` to `ActionResult<ApiResponse<IEnumerable<ItemDto>>>`.
-- [ ] OPENAPI-029: Change `ItemsController.SaveItem` from `IActionResult` to `ActionResult<ApiResponse<ItemDto>>` or to a split response DTO if item contracts are cleaned up.
+- [x] OPENAPI-024: Change `EmotionsController.GetEmotions` from `IActionResult` to `ActionResult<ApiResponse<IEnumerable<EmotionTreeNodeDto>>>`.
+- [x] OPENAPI-025: Change `EmotionEntriesController.GetEmotionEntries` from `IActionResult` to `ActionResult<ApiResponse<IEnumerable<EmotionEntryResponse>>>`.
+- [x] OPENAPI-026: Change `EmotionEntriesController.CreateEmotionEntry` from `IActionResult` to `ActionResult<ApiResponse<EmotionEntryResponse>>`.
+- [x] OPENAPI-027: Change `EmotionEntriesController.GetSummary` from `IActionResult` to `ActionResult<ApiResponse<EmotionEntriesSummaryResponse>>`.
+- [x] OPENAPI-028: Change `ItemsController.GetItems` from `IActionResult` to `ActionResult<ApiResponse<IEnumerable<ItemDto>>>`.
+- [x] OPENAPI-029: Change `ItemsController.SaveItem` from `IActionResult` to `ActionResult<ApiResponse<ItemDto>>` or to a split response DTO if item contracts are cleaned up.
 
 ## Binding Metadata
 

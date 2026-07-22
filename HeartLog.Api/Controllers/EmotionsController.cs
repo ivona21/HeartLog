@@ -23,7 +23,7 @@ public class EmotionsController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<IEnumerable<EmotionTreeNodeDto>>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     [SwaggerOperation(OperationId = "Emotions_GetTree")]
-    public async Task<IActionResult> GetEmotions([FromQuery] string locale = "en")
+    public async Task<ActionResult<ApiResponse<IEnumerable<EmotionTreeNodeDto>>>> GetEmotions([FromQuery] string locale = "en")
     {
         var emotions = await _emotionService.GetEmotionTreeAsync(locale);
         var emotionDtos = emotions.Select(e => e.ToDto()).ToList();

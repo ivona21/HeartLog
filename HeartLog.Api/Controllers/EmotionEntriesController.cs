@@ -30,7 +30,7 @@ public class EmotionEntriesController : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     [SwaggerOperation(OperationId = "EmotionEntries_GetAll")]
-    public async Task<IActionResult> GetEmotionEntries(CancellationToken cancellationToken)
+    public async Task<ActionResult<ApiResponse<IEnumerable<EmotionEntryResponse>>>> GetEmotionEntries(CancellationToken cancellationToken)
     {
         var user = await _currentUserService.GetCurrentUserAsync(User, cancellationToken);
         var entries = await _emotionEntryService.GetAllByUserAsync(user.Id, cancellationToken);
@@ -48,7 +48,7 @@ public class EmotionEntriesController : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     [SwaggerOperation(OperationId = "EmotionEntries_Create")]
-    public async Task<IActionResult> CreateEmotionEntry(CreateEmotionEntryRequest request, CancellationToken cancellationToken)
+    public async Task<ActionResult<ApiResponse<EmotionEntryResponse>>> CreateEmotionEntry(CreateEmotionEntryRequest request, CancellationToken cancellationToken)
     {
         var user = await _currentUserService.GetCurrentUserAsync(User, cancellationToken);
 
@@ -71,7 +71,7 @@ public class EmotionEntriesController : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     [SwaggerOperation(OperationId = "EmotionEntries_GetSummary")]
-    public async Task<IActionResult> GetSummary(CancellationToken cancellationToken)
+    public async Task<ActionResult<ApiResponse<EmotionEntriesSummaryResponse>>> GetSummary(CancellationToken cancellationToken)
     {
         var user = await _currentUserService.GetCurrentUserAsync(User, cancellationToken);
         var summary = await _emotionEntryService.GetSummaryAsync(user.Id, cancellationToken);
