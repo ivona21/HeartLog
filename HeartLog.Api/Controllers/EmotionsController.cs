@@ -8,6 +8,7 @@ namespace HeartLog.Api.Controllers;
 
 [ApiController]
 [Route("api/emotions")]
+[SwaggerTag("Emotion tree endpoints.")]
 public class EmotionsController : ControllerBase
 {
     private readonly IEmotionService _emotionService;

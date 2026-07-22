@@ -10,6 +10,7 @@ namespace HeartLog.Api.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/emotion-entries")]
+[SwaggerTag("Authenticated emotion entry endpoints.")]
 public class EmotionEntriesController : ControllerBase
 {
     private readonly IEmotionEntryService _emotionEntryService;

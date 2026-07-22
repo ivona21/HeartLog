@@ -14,6 +14,7 @@ namespace HeartLog.Api.Controllers;
 
 [ApiController]
 [Route("api/auth")]
+[SwaggerTag("Authentication and current-user endpoints.")]
 public class AuthController : ControllerBase
 {
     private readonly IUserService _userService;

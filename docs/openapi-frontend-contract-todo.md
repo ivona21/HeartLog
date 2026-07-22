@@ -16,7 +16,7 @@ Scope rule: OpenAPI/documentation-only changes should not alter runtime behavior
 - [x] OPENAPI-004: Add `Swashbuckle.AspNetCore.Annotations` if operation IDs and descriptions will be maintained via attributes.
 - [x] OPENAPI-005: Enable Swagger annotations in `AddSwaggerGen`.
 - [x] OPENAPI-006: Add stable operation IDs for all controller actions.
-- [ ] OPENAPI-007: Add endpoint tags: `Auth`, `Emotions`, `EmotionEntries`, `Items`, and optionally `Health`.
+- [x] OPENAPI-007: Add endpoint tags: `Auth`, `Emotions`, `EmotionEntries`, `Items`, and optionally `Health`.
 - [ ] OPENAPI-008: Add XML documentation generation in `HeartLog.Api.csproj` if human-readable endpoint descriptions are desired.
 - [ ] OPENAPI-009: Include XML comments in Swagger configuration if XML documentation is enabled.
 - [ ] OPENAPI-010: Enable non-nullable reference type support in Swagger configuration with `SupportNonNullableReferenceTypes()`.

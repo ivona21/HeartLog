@@ -9,6 +9,7 @@ namespace HeartLog.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[SwaggerTag("Item endpoints.")]
 public class ItemsController: ControllerBase
 {
     private readonly IItemService _itemService;
