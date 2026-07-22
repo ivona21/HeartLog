@@ -8,6 +8,7 @@ Scope rule: OpenAPI/documentation-only changes should not alter runtime behavior
 
 - OPENAPI-002: The generated OpenAPI artifact should be committed at `openapi/heartlog.openapi.json`. The frontend should consume that stable file for contract generation. CI or a local verification workflow can later regenerate the file and fail if it is stale.
 - OPENAPI-016: Supabase implementation details stay outside the public OpenAPI contract. Controllers expose only HeartLog request/response DTOs and documented auth behavior.
+- OPENAPI-037 through OPENAPI-041: Diagnostic, root, health, and development probe endpoints stay callable but are hidden from the public OpenAPI contract.
 
 ## Safe Metadata And Export
 
@@ -66,11 +67,11 @@ Scope rule: OpenAPI/documentation-only changes should not alter runtime behavior
 
 ## Endpoint Inventory Review
 
-- [ ] OPENAPI-037: Decide whether `GET /api/auth/confidential` should be removed, hidden from OpenAPI, or kept as a real contract endpoint.
-- [ ] OPENAPI-038: Decide whether `GET /api/auth/ping` should be removed, hidden from OpenAPI, or moved to a health endpoint.
-- [ ] OPENAPI-039: Decide whether minimal endpoint `GET /ping` should be part of the public contract.
-- [ ] OPENAPI-040: Decide whether root `GET /` should be hidden from OpenAPI.
-- [ ] OPENAPI-041: Keep development-only `/test-supabase` out of public OpenAPI.
+- [x] OPENAPI-037: Decide whether `GET /api/auth/confidential` should be removed, hidden from OpenAPI, or kept as a real contract endpoint.
+- [x] OPENAPI-038: Decide whether `GET /api/auth/ping` should be removed, hidden from OpenAPI, or moved to a health endpoint.
+- [x] OPENAPI-039: Decide whether minimal endpoint `GET /ping` should be part of the public contract.
+- [x] OPENAPI-040: Decide whether root `GET /` should be hidden from OpenAPI.
+- [x] OPENAPI-041: Keep development-only `/test-supabase` out of public OpenAPI.
 
 ## Potential Behavior Changes Requiring Separate Review
 

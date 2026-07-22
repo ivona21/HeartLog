@@ -190,15 +190,18 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapGet("/ping", () => Results.Ok("pong"));
-app.MapGet("/", () => "HeartLog API is running 🚀");
+app.MapGet("/ping", () => Results.Ok("pong"))
+    .ExcludeFromDescription();
+app.MapGet("/", () => "HeartLog API is running 🚀")
+    .ExcludeFromDescription();
 if (app.Environment.IsDevelopment())
 {
     app.MapGet("/test-supabase", async (IExternalAuthService authService) =>
     {
         await authService.TestConnectionAsync();
         return Results.Ok("Supabase connection successful!");
-    });
+    })
+    .ExcludeFromDescription();
 }
 
 app.MapControllers();
