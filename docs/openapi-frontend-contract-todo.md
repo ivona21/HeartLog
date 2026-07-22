@@ -4,13 +4,17 @@ Purpose: improve the generated OpenAPI contract so the frontend can reliably dis
 
 Scope rule: OpenAPI/documentation-only changes should not alter runtime behavior. Any item that can change routes, validation, status codes, DTO payloads, auth behavior, or cookie behavior must be reviewed separately before implementation.
 
+## Decisions
+
+- OPENAPI-002: The generated OpenAPI artifact should be committed at `openapi/heartlog.openapi.json`. The frontend should consume that stable file for contract generation. CI or a local verification workflow can later regenerate the file and fail if it is stale.
+
 ## Safe Metadata And Export
 
 - [x] OPENAPI-001: Add a repeatable OpenAPI export command or script that writes the generated spec to `openapi/heartlog.openapi.json`.
-- [ ] OPENAPI-002: Decide whether the generated OpenAPI artifact should be committed, published from CI, or fetched by the frontend from a deployed backend.
-- [ ] OPENAPI-003: Add OpenAPI generation to CI or a local documented workflow.
-- [ ] OPENAPI-004: Add `Swashbuckle.AspNetCore.Annotations` if operation IDs and descriptions will be maintained via attributes.
-- [ ] OPENAPI-005: Enable Swagger annotations in `AddSwaggerGen`.
+- [x] OPENAPI-002: Decide whether the generated OpenAPI artifact should be committed, published from CI, or fetched by the frontend from a deployed backend.
+- [x] OPENAPI-003: Add OpenAPI generation to CI or a local documented workflow.
+- [x] OPENAPI-004: Add `Swashbuckle.AspNetCore.Annotations` if operation IDs and descriptions will be maintained via attributes.
+- [x] OPENAPI-005: Enable Swagger annotations in `AddSwaggerGen`.
 - [ ] OPENAPI-006: Add stable operation IDs for all controller actions.
 - [ ] OPENAPI-007: Add endpoint tags: `Auth`, `Emotions`, `EmotionEntries`, `Items`, and optionally `Health`.
 - [ ] OPENAPI-008: Add XML documentation generation in `HeartLog.Api.csproj` if human-readable endpoint descriptions are desired.
