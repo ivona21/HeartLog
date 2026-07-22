@@ -6,7 +6,7 @@ Scope rule: OpenAPI/documentation-only changes should not alter runtime behavior
 
 ## Safe Metadata And Export
 
-- [ ] OPENAPI-001: Add a repeatable OpenAPI export command or script that writes the generated spec to `openapi/heartlog.openapi.json`.
+- [x] OPENAPI-001: Add a repeatable OpenAPI export command or script that writes the generated spec to `openapi/heartlog.openapi.json`.
 - [ ] OPENAPI-002: Decide whether the generated OpenAPI artifact should be committed, published from CI, or fetched by the frontend from a deployed backend.
 - [ ] OPENAPI-003: Add OpenAPI generation to CI or a local documented workflow.
 - [ ] OPENAPI-004: Add `Swashbuckle.AspNetCore.Annotations` if operation IDs and descriptions will be maintained via attributes.
