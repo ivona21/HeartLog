@@ -46,7 +46,7 @@ public class ItemsController: ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     [SwaggerOperation(OperationId = "Items_Save")]
-    public async Task<ActionResult<ApiResponse<ItemDto>>> SaveItem(ItemDto item)
+    public async Task<ActionResult<ApiResponse<ItemDto>>> SaveItem([FromBody] ItemDto item)
     {
         await _itemService.AddItemAsync(new Item { Name = item.Name });
         return Ok(new ApiResponse<ItemDto>(

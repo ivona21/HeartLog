@@ -56,13 +56,13 @@ Scope rule: OpenAPI/documentation-only changes should not alter runtime behavior
 
 ## Binding Metadata
 
-- [ ] OPENAPI-030: Add explicit `[FromBody]` to `AuthController.Register`.
-- [ ] OPENAPI-031: Add explicit `[FromBody]` to `AuthController.ResendConfirmation`.
-- [ ] OPENAPI-032: Add explicit `[FromBody]` to `AuthController.Login`.
-- [ ] OPENAPI-033: Add explicit `[FromBody]` to `EmotionEntriesController.CreateEmotionEntry`.
-- [ ] OPENAPI-034: Add explicit `[FromBody]` to `ItemsController.SaveItem`.
-- [ ] OPENAPI-035: Keep `[FromQuery]` on `AuthController.ConfirmEmail` parameters.
-- [ ] OPENAPI-036: Keep `[FromQuery]` on `EmotionsController.GetEmotions`.
+- [x] OPENAPI-030: Add explicit `[FromBody]` to `AuthController.Register`.
+- [x] OPENAPI-031: Add explicit `[FromBody]` to `AuthController.ResendConfirmation`.
+- [x] OPENAPI-032: Add explicit `[FromBody]` to `AuthController.Login`.
+- [x] OPENAPI-033: Add explicit `[FromBody]` to `EmotionEntriesController.CreateEmotionEntry`.
+- [x] OPENAPI-034: Add explicit `[FromBody]` to `ItemsController.SaveItem`.
+- [x] OPENAPI-035: Keep `[FromQuery]` on `AuthController.ConfirmEmail` parameters.
+- [x] OPENAPI-036: Keep `[FromQuery]` on `EmotionsController.GetEmotions`.
 
 ## Endpoint Inventory Review
 

@@ -40,7 +40,7 @@ public class AuthController : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     [SwaggerOperation(OperationId = "Auth_Register")]
-    public async Task<ActionResult<ApiResponse<AuthRegistrationResponseDto>>> Register(UserRegisterDto userDto)
+    public async Task<ActionResult<ApiResponse<AuthRegistrationResponseDto>>> Register([FromBody] UserRegisterDto userDto)
     {
         User user = UserMapper.ToEntity(userDto);
         var registration = await _userService.RegisterUserAsync(user, userDto.Password);
@@ -92,7 +92,7 @@ public class AuthController : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     [SwaggerOperation(OperationId = "Auth_ResendConfirmation")]
-    public async Task<ActionResult<ApiResponse>> ResendConfirmation(ResendConfirmationRequestDto request)
+    public async Task<ActionResult<ApiResponse>> ResendConfirmation([FromBody] ResendConfirmationRequestDto request)
     {
         await _userService.ResendConfirmationAsync(request.Email);
 
@@ -111,7 +111,7 @@ public class AuthController : ControllerBase
     [SwaggerOperation(
         OperationId = "Auth_Login",
         Description = "Returns an access token in the response body and sets the HTTP-only heartlog_refresh_token cookie for session refresh.")]
-    public async Task<ActionResult<ApiResponse<AuthSessionResponseDto>>> Login(UserLoginDto userDto)
+    public async Task<ActionResult<ApiResponse<AuthSessionResponseDto>>> Login([FromBody] UserLoginDto userDto)
     {
         var session = await _userService.LoginUserAsync(userDto.Email, userDto.Password);
 
