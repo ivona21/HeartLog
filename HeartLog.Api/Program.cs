@@ -11,6 +11,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 
 using HeartLog.Api.Middleware;
+using HeartLog.Api.OpenApi;
 using HeartLog.BLL.Models.Auth;
 using HeartLog.BLL.Services.Auth;
 using HeartLog.DAL.Seeding;
@@ -68,6 +69,14 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new() { Title = "HeartLog API", Version = "v1" });
+    c.EnableAnnotations();
+    c.SupportNonNullableReferenceTypes();
+
+    var xmlCommentsPath = Path.Combine(AppContext.BaseDirectory, "HeartLog.Api.xml");
+    if (File.Exists(xmlCommentsPath))
+    {
+        c.IncludeXmlComments(xmlCommentsPath);
+    }
 
     // JWT Authentication setup
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
@@ -78,21 +87,7 @@ builder.Services.AddSwaggerGen(c =>
         Type = SecuritySchemeType.Http,
         Scheme = "bearer"
     });
-
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
-        {
-            new OpenApiSecurityScheme
-            {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                }
-            },
-            Array.Empty<string>()
-        }
-    });
+    c.OperationFilter<AuthorizeOperationFilter>();
 });
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
@@ -195,15 +190,18 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapGet("/ping", () => Results.Ok("pong"));
-app.MapGet("/", () => "HeartLog API is running 🚀");
+app.MapGet("/ping", () => Results.Ok("pong"))
+    .ExcludeFromDescription();
+app.MapGet("/", () => "HeartLog API is running 🚀")
+    .ExcludeFromDescription();
 if (app.Environment.IsDevelopment())
 {
     app.MapGet("/test-supabase", async (IExternalAuthService authService) =>
     {
         await authService.TestConnectionAsync();
         return Results.Ok("Supabase connection successful!");
-    });
+    })
+    .ExcludeFromDescription();
 }
 
 app.MapControllers();

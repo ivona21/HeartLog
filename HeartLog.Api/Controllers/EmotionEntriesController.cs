@@ -3,12 +3,15 @@ using HeartLog.Api.Mappers;
 using HeartLog.BLL.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace HeartLog.Api.Controllers;
 
 [ApiController]
 [Authorize]
 [Route("api/emotion-entries")]
+[Produces("application/json")]
+[SwaggerTag("Authenticated emotion entry endpoints.")]
 public class EmotionEntriesController : ControllerBase
 {
     private readonly IEmotionEntryService _emotionEntryService;
@@ -23,7 +26,11 @@ public class EmotionEntriesController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetEmotionEntries(CancellationToken cancellationToken)
+    [ProducesResponseType(typeof(ApiResponse<IEnumerable<EmotionEntryResponse>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    [SwaggerOperation(OperationId = "EmotionEntries_GetAll")]
+    public async Task<ActionResult<ApiResponse<IEnumerable<EmotionEntryResponse>>>> GetEmotionEntries(CancellationToken cancellationToken)
     {
         var user = await _currentUserService.GetCurrentUserAsync(User, cancellationToken);
         var entries = await _emotionEntryService.GetAllByUserAsync(user.Id, cancellationToken);
@@ -35,7 +42,13 @@ public class EmotionEntriesController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> CreateEmotionEntry(CreateEmotionEntryRequest request, CancellationToken cancellationToken)
+    [Consumes("application/json")]
+    [ProducesResponseType(typeof(ApiResponse<EmotionEntryResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    [SwaggerOperation(OperationId = "EmotionEntries_Create")]
+    public async Task<ActionResult<ApiResponse<EmotionEntryResponse>>> CreateEmotionEntry([FromBody] CreateEmotionEntryRequest request, CancellationToken cancellationToken)
     {
         var user = await _currentUserService.GetCurrentUserAsync(User, cancellationToken);
 
@@ -54,7 +67,11 @@ public class EmotionEntriesController : ControllerBase
     }
 
     [HttpGet("summary")]
-    public async Task<IActionResult> GetSummary(CancellationToken cancellationToken)
+    [ProducesResponseType(typeof(ApiResponse<EmotionEntriesSummaryResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    [SwaggerOperation(OperationId = "EmotionEntries_GetSummary")]
+    public async Task<ActionResult<ApiResponse<EmotionEntriesSummaryResponse>>> GetSummary(CancellationToken cancellationToken)
     {
         var user = await _currentUserService.GetCurrentUserAsync(User, cancellationToken);
         var summary = await _emotionEntryService.GetSummaryAsync(user.Id, cancellationToken);

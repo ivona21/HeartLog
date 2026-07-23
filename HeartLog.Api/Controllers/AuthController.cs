@@ -8,11 +8,14 @@ using HeartLog.DAL.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Hosting;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace HeartLog.Api.Controllers;
 
 [ApiController]
 [Route("api/auth")]
+[Produces("application/json")]
+[SwaggerTag("Authentication and current-user endpoints.")]
 public class AuthController : ControllerBase
 {
     private readonly IUserService _userService;
@@ -31,7 +34,13 @@ public class AuthController : ControllerBase
 
     [AllowAnonymous]
     [HttpPost("register")]
-    public async Task<ActionResult<ApiResponse<AuthRegistrationResponseDto>>> Register(UserRegisterDto userDto)
+    [Consumes("application/json")]
+    [ProducesResponseType(typeof(ApiResponse<AuthRegistrationResponseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    [SwaggerOperation(OperationId = "Auth_Register")]
+    public async Task<ActionResult<ApiResponse<AuthRegistrationResponseDto>>> Register([FromBody] UserRegisterDto userDto)
     {
         User user = UserMapper.ToEntity(userDto);
         var registration = await _userService.RegisterUserAsync(user, userDto.Password);
@@ -45,6 +54,10 @@ public class AuthController : ControllerBase
 
     [AllowAnonymous]
     [HttpGet("confirm-email")]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    [SwaggerOperation(OperationId = "Auth_ConfirmEmail")]
     public async Task<ActionResult<ApiResponse>> ConfirmEmail(
         [FromQuery(Name = "token_hash")] string tokenHash,
         [FromQuery] string type)
@@ -74,7 +87,12 @@ public class AuthController : ControllerBase
 
     [AllowAnonymous]
     [HttpPost("resend-confirmation")]
-    public async Task<ActionResult<ApiResponse>> ResendConfirmation(ResendConfirmationRequestDto request)
+    [Consumes("application/json")]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    [SwaggerOperation(OperationId = "Auth_ResendConfirmation")]
+    public async Task<ActionResult<ApiResponse>> ResendConfirmation([FromBody] ResendConfirmationRequestDto request)
     {
         await _userService.ResendConfirmationAsync(request.Email);
 
@@ -85,7 +103,15 @@ public class AuthController : ControllerBase
     
     [AllowAnonymous]
     [HttpPost("login")]
-    public async Task<ActionResult<ApiResponse<AuthSessionResponseDto>>> Login(UserLoginDto userDto)
+    [Consumes("application/json")]
+    [ProducesResponseType(typeof(ApiResponse<AuthSessionResponseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    [SwaggerOperation(
+        OperationId = "Auth_Login",
+        Description = "Returns an access token in the response body and sets the HTTP-only heartlog_refresh_token cookie for session refresh.")]
+    public async Task<ActionResult<ApiResponse<AuthSessionResponseDto>>> Login([FromBody] UserLoginDto userDto)
     {
         var session = await _userService.LoginUserAsync(userDto.Email, userDto.Password);
 
@@ -99,6 +125,13 @@ public class AuthController : ControllerBase
 
     [AllowAnonymous]
     [HttpPost("refresh")]
+    [ProducesResponseType(typeof(ApiResponse<AuthSessionResponseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    [SwaggerOperation(
+        OperationId = "Auth_Refresh",
+        Description = "Reads the HTTP-only heartlog_refresh_token cookie, returns a new access token in the response body, and renews the refresh cookie. Frontend requests must include credentials.")]
     public async Task<ActionResult<ApiResponse<AuthSessionResponseDto>>> Refresh()
     {
         if (!Request.Cookies.TryGetValue(RefreshTokenCookie.Name, out var refreshToken)
@@ -119,6 +152,11 @@ public class AuthController : ControllerBase
 
     [AllowAnonymous]
     [HttpPost("logout")]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    [SwaggerOperation(
+        OperationId = "Auth_Logout",
+        Description = "Clears the HTTP-only heartlog_refresh_token cookie. Frontend requests must include credentials.")]
     public ActionResult<ApiResponse> Logout()
     {
         Response.Cookies.Delete(
@@ -132,6 +170,10 @@ public class AuthController : ControllerBase
 
     [Authorize]
     [HttpGet("me")]
+    [ProducesResponseType(typeof(ApiResponse<UserMeResponseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    [SwaggerOperation(OperationId = "Auth_GetCurrentUser")]
     public async Task<ActionResult<ApiResponse<UserMeResponseDto>>> GetCurrentUser()
     {
         var currentUser = await _currentUserService.GetCurrentUserAsync(User);
@@ -144,12 +186,21 @@ public class AuthController : ControllerBase
 
     [Authorize]
     [HttpGet("confidential")]
+    [ApiExplorerSettings(IgnoreApi = true)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    [SwaggerOperation(OperationId = "Auth_GetConfidential")]
     public async Task<ActionResult<ApiResponse>> GetSomethingConfidential()
     {
         return Ok(new ApiResponse(Success: true, Message: "Something confidential"));
     }
 
     [HttpGet("ping")]
+    [ApiExplorerSettings(IgnoreApi = true)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    [SwaggerOperation(OperationId = "Auth_Ping")]
     public async Task<ActionResult<ApiResponse>> Ping()
     {
         return Ok(new ApiResponse(Success: true, Message: "Pong"));
