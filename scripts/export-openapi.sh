@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-url="${HEARTLOG_OPENAPI_URL:-http://localhost:5048/swagger/v1/swagger.json}"
+url="${HEARTLOG_OPENAPI_URL:-http://localhost/swagger/v1/swagger.json}"
 output="${1:-openapi/heartlog.openapi.json}"
 output_dir="$(dirname "$output")"
 tmp_file="$(mktemp)"

@@ -33,13 +33,13 @@ Commit `openapi/heartlog.openapi.json` when the API contract intentionally chang
 By default, the export script reads:
 
 ```text
-http://localhost:5048/swagger/v1/swagger.json
+http://localhost/swagger/v1/swagger.json
 ```
 
 Use `HEARTLOG_OPENAPI_URL` when the backend is running somewhere else:
 
 ```bash
-HEARTLOG_OPENAPI_URL=http://localhost/swagger/v1/swagger.json bash scripts/export-openapi.sh
+HEARTLOG_OPENAPI_URL=http://localhost:5048/swagger/v1/swagger.json bash scripts/export-openapi.sh
 ```
 
 ## Verify
