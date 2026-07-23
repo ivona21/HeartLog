@@ -9,6 +9,8 @@ Scope rule: OpenAPI/documentation-only changes should not alter runtime behavior
 - OPENAPI-002: The generated OpenAPI artifact should be committed at `openapi/heartlog.openapi.json`. The frontend should consume that stable file for contract generation. CI or a local verification workflow can later regenerate the file and fail if it is stale.
 - OPENAPI-016: Supabase implementation details stay outside the public OpenAPI contract. Controllers expose only HeartLog request/response DTOs and documented auth behavior.
 - OPENAPI-037 through OPENAPI-041: Diagnostic, root, health, and development probe endpoints stay callable but are hidden from the public OpenAPI contract.
+- OPENAPI-042 through OPENAPI-047: Behavior-changing API improvements are deferred from this OpenAPI metadata pass. Create endpoints keep `200 OK`, existing routes stay unchanged, DTO splitting is postponed, and new validation constraints require separate review before implementation.
+- OPENAPI-048 through OPENAPI-054: DTO contract review is documented in `docs/openapi-dto-contract-review.md`. No DTO shape or validation behavior was changed.
 
 ## Safe Metadata And Export
 
@@ -75,22 +77,22 @@ Scope rule: OpenAPI/documentation-only changes should not alter runtime behavior
 
 ## Potential Behavior Changes Requiring Separate Review
 
-- [ ] OPENAPI-042: Decide whether create endpoints should return `201 Created` instead of `200 OK`.
-- [ ] OPENAPI-043: If using `201 Created`, add meaningful `GET by id` endpoints before using `CreatedAtAction`.
-- [ ] OPENAPI-044: Decide whether `ItemsController` route should change from `api/[controller]` to explicit lowercase `api/items`.
-- [ ] OPENAPI-045: Decide whether `ItemDto` should be split into `CreateItemRequest` and `ItemResponse`.
-- [ ] OPENAPI-046: Decide whether more validation attributes should be added to DTOs.
-- [ ] OPENAPI-047: Review any new validation attributes for behavior impact before applying.
+- [x] OPENAPI-042: Decide whether create endpoints should return `201 Created` instead of `200 OK`.
+- [x] OPENAPI-043: If using `201 Created`, add meaningful `GET by id` endpoints before using `CreatedAtAction`.
+- [x] OPENAPI-044: Decide whether `ItemsController` route should change from `api/[controller]` to explicit lowercase `api/items`.
+- [x] OPENAPI-045: Decide whether `ItemDto` should be split into `CreateItemRequest` and `ItemResponse`.
+- [x] OPENAPI-046: Decide whether more validation attributes should be added to DTOs.
+- [x] OPENAPI-047: Review any new validation attributes for behavior impact before applying.
 
 ## DTO Contract Review
 
-- [ ] OPENAPI-048: Review `UserRegisterDto` required fields and password constraints.
-- [ ] OPENAPI-049: Review `UserLoginDto` required fields.
-- [ ] OPENAPI-050: Review `ResendConfirmationRequestDto` required fields.
-- [ ] OPENAPI-051: Review `CreateEmotionEntryRequest` required fields, list length, comment length, and date behavior.
-- [ ] OPENAPI-052: Review `ItemDto` nullability and required fields.
-- [ ] OPENAPI-053: Confirm response DTOs do not expose internal or provider-specific models.
-- [ ] OPENAPI-054: Confirm `ApiResponse<T>` and `ErrorResponse` are the intended universal wrappers.
+- [x] OPENAPI-048: Review `UserRegisterDto` required fields and password constraints.
+- [x] OPENAPI-049: Review `UserLoginDto` required fields.
+- [x] OPENAPI-050: Review `ResendConfirmationRequestDto` required fields.
+- [x] OPENAPI-051: Review `CreateEmotionEntryRequest` required fields, list length, comment length, and date behavior.
+- [x] OPENAPI-052: Review `ItemDto` nullability and required fields.
+- [x] OPENAPI-053: Confirm response DTOs do not expose internal or provider-specific models.
+- [x] OPENAPI-054: Confirm `ApiResponse<T>` and `ErrorResponse` are the intended universal wrappers.
 
 ## Frontend Consumption
 
