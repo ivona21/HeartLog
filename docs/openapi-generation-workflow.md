@@ -14,6 +14,18 @@ openapi/heartlog.openapi.json
    dotnet run --project HeartLog.Api --launch-profile http
    ```
 
+   The current app startup forces Kestrel to port `80`, so Swagger UI is available at:
+
+   ```text
+   http://localhost/index.html
+   ```
+
+   The raw OpenAPI JSON is available at:
+
+   ```text
+   http://localhost/swagger/v1/swagger.json
+   ```
+
 2. In another terminal, export the OpenAPI spec:
 
    ```bash
@@ -39,7 +51,7 @@ http://localhost/swagger/v1/swagger.json
 Use `HEARTLOG_OPENAPI_URL` when the backend is running somewhere else:
 
 ```bash
-HEARTLOG_OPENAPI_URL=http://localhost:5048/swagger/v1/swagger.json bash scripts/export-openapi.sh
+HEARTLOG_OPENAPI_URL=http://example.local/swagger/v1/swagger.json bash scripts/export-openapi.sh
 ```
 
 ## Verify
@@ -49,11 +61,5 @@ The export script fails if:
 - the backend is not reachable
 - `/swagger/v1/swagger.json` returns a non-success status
 - the response is not valid JSON
-
-Manual verification:
-
-```bash
-python3 -m json.tool openapi/heartlog.openapi.json >/dev/null
-```
 
 The generated file should change only when the public API contract changes.
