@@ -118,6 +118,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
+var configuredFrontendBaseUrl = builder.Configuration["Frontend:BaseUrl"];
 var allowedCorsOrigins = builder.Configuration
     .GetSection("Cors:AllowedOrigins")
     .GetChildren()
@@ -137,6 +138,14 @@ if (allowedCorsOrigins.Length == 0)
         "https://71eb8564-b79f-4920-af09-9cd6317e6a88-00-1cgns8l1wsjzo.picard.replit.dev",
         "https://replit.com"
     ];
+}
+
+if (!string.IsNullOrWhiteSpace(configuredFrontendBaseUrl))
+{
+    allowedCorsOrigins = allowedCorsOrigins
+        .Append(configuredFrontendBaseUrl.TrimEnd('/'))
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToArray();
 }
 
 builder.Services.AddCors(options =>
