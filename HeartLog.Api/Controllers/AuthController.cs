@@ -7,6 +7,7 @@ using HeartLog.BLL.Models.Auth;
 using HeartLog.DAL.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Swashbuckle.AspNetCore.Annotations;
 
@@ -21,15 +22,18 @@ public class AuthController : ControllerBase
     private readonly IUserService _userService;
     private readonly ICurrentUserService _currentUserService;
     private readonly IHostEnvironment _environment;
+    private readonly IConfiguration _configuration;
 
     public AuthController(
         IUserService userService,
         ICurrentUserService currentUserService,
-        IHostEnvironment environment)
+        IHostEnvironment environment,
+        IConfiguration configuration)
     {
         _userService = userService;
         _currentUserService = currentUserService;
         _environment = environment;
+        _configuration = configuration;
     }
 
     [AllowAnonymous]
@@ -54,35 +58,38 @@ public class AuthController : ControllerBase
 
     [AllowAnonymous]
     [HttpGet("confirm-email")]
-    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status302Found)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    [SwaggerOperation(OperationId = "Auth_ConfirmEmail")]
-    public async Task<ActionResult<ApiResponse>> ConfirmEmail(
+    [SwaggerOperation(
+        OperationId = "Auth_ConfirmEmail",
+        Description = "Confirms the email token and redirects to the configured frontend email-confirmation route with status success, expired, or invalid.")]
+    public async Task<IActionResult> ConfirmEmail(
         [FromQuery(Name = "token_hash")] string tokenHash,
         [FromQuery] string type)
     {
         if (string.IsNullOrWhiteSpace(tokenHash))
         {
-            return BadRequest(new ErrorResponse
-            {
-                Message = "Email confirmation token is required."
-            });
+            return RedirectToEmailConfirmationStatus("invalid");
         }
 
         if (string.IsNullOrWhiteSpace(type))
         {
-            return BadRequest(new ErrorResponse
-            {
-                Message = "Email confirmation type is required."
-            });
+            return RedirectToEmailConfirmationStatus("invalid");
         }
 
-        await _userService.ConfirmEmailAsync(tokenHash, type);
+        try
+        {
+            await _userService.ConfirmEmailAsync(tokenHash, type);
 
-        return Ok(new ApiResponse(
-            Success: true,
-            Message: "Email confirmed successfully"));
+            return RedirectToEmailConfirmationStatus("success");
+        }
+        catch (EmailConfirmationException ex)
+        {
+            return RedirectToEmailConfirmationStatus(
+                ex.Reason == EmailConfirmationFailureReason.Expired
+                    ? "expired"
+                    : "invalid");
+        }
     }
 
     [AllowAnonymous]
@@ -217,5 +224,15 @@ public class AuthController : ControllerBase
             RefreshTokenCookie.Name,
             session.RefreshToken,
             RefreshTokenCookie.CreateOptions(_environment));
+    }
+
+    private RedirectResult RedirectToEmailConfirmationStatus(string status)
+    {
+        var frontendBaseUrl = _configuration["Frontend:BaseUrl"]
+                              ?? throw new InvalidOperationException("Frontend base URL is missing.");
+        var redirectUrl = $"{frontendBaseUrl.TrimEnd('/')}/email-confirmation";
+
+        var separator = redirectUrl.Contains('?') ? '&' : '?';
+        return Redirect($"{redirectUrl}{separator}status={Uri.EscapeDataString(status)}");
     }
 }

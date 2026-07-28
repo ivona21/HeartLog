@@ -52,7 +52,9 @@ public class SupabaseAuthService : IExternalAuthService
     {
         if (!IsSupportedEmailConfirmationType(type))
         {
-            throw new ExternalAuthException("Unsupported email confirmation type.");
+            throw new EmailConfirmationException(
+                EmailConfirmationFailureReason.Invalid,
+                "Unsupported email confirmation type.");
         }
 
         try
@@ -64,12 +66,16 @@ public class SupabaseAuthService : IExternalAuthService
 
             if (session?.User is null)
             {
-                throw new ExternalAuthException("Supabase email confirmation did not return a user.");
+                throw new EmailConfirmationException(
+                    EmailConfirmationFailureReason.Invalid,
+                    "Supabase email confirmation did not return a user.");
             }
 
             if (string.IsNullOrWhiteSpace(session.User.Email))
             {
-                throw new ExternalAuthException("Supabase email confirmation did not return a user email.");
+                throw new EmailConfirmationException(
+                    EmailConfirmationFailureReason.Invalid,
+                    "Supabase email confirmation did not return a user email.");
             }
 
             return new ExternalAuthEmailConfirmationResult
@@ -81,10 +87,33 @@ public class SupabaseAuthService : IExternalAuthService
         {
             throw;
         }
+        catch (GotrueException ex)
+        {
+            throw new EmailConfirmationException(
+                GetEmailConfirmationFailureReason(ex),
+                "Supabase email confirmation failed.",
+                ex);
+        }
         catch (Exception ex)
         {
-            throw new ExternalAuthException("Supabase email confirmation failed.", ex);
+            throw new EmailConfirmationException(
+                EmailConfirmationFailureReason.Invalid,
+                "Supabase email confirmation failed.",
+                ex);
         }
+    }
+
+    private static EmailConfirmationFailureReason GetEmailConfirmationFailureReason(GotrueException exception)
+    {
+        var details = string.Join(
+            ' ',
+            exception.Message,
+            exception.Content ?? string.Empty,
+            exception.Reason.ToString());
+
+        return details.Contains("expired", StringComparison.OrdinalIgnoreCase)
+            ? EmailConfirmationFailureReason.Expired
+            : EmailConfirmationFailureReason.Invalid;
     }
 
     public async Task ResendConfirmationAsync(string email)
