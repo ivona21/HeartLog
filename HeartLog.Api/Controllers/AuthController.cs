@@ -114,6 +114,7 @@ public class AuthController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<AuthSessionResponseDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status503ServiceUnavailable)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     [SwaggerOperation(
         OperationId = "Auth_Login",

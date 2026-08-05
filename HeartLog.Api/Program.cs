@@ -1,4 +1,5 @@
 using HeartLog.Api.DTOs;
+using HeartLog.Api.Errors;
 using HeartLog.BLL;
 using HeartLog.BLL.Interfaces;
 using HeartLog.DAL.Data;
@@ -17,6 +18,8 @@ using HeartLog.BLL.Services.Auth;
 using HeartLog.DAL.Seeding;
 using HeartLog.DAL.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 DotNetEnv.Env.Load();
 var builder = WebApplication.CreateBuilder(args);
@@ -32,22 +35,33 @@ var supabaseAudience = supabaseSettings["JwtAudience"] ?? "authenticated";
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+});
+
 builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+    })
     .ConfigureApiBehaviorOptions(options =>
     {
         options.InvalidModelStateResponseFactory = context =>
         {
             var errors = context.ModelState
-                .Where(e => e.Value.Errors.Count > 0)
+                .Where(e => e.Value?.Errors.Count > 0)
                 .ToDictionary(
                     kvp => kvp.Key,
-                    kvp => kvp.Value.Errors.Select(e => e.ErrorMessage).ToArray()
+                    kvp => kvp.Value!.Errors.Select(e => e.ErrorMessage).ToArray()
                 );
 
             var errorResponse = new ErrorResponse
             {
-                Message = "Validation failed",
-                Errors = errors
+                Code = ApiErrorCode.ValidationFailed,
+                Message = ApiErrorMessages.ValidationFailed,
+                Errors = errors,
+                TraceId = context.HttpContext.TraceIdentifier
             };
 
             return new BadRequestObjectResult(errorResponse);
@@ -71,6 +85,7 @@ builder.Services.AddSwaggerGen(c =>
     c.SwaggerDoc("v1", new() { Title = "HeartLog API", Version = "v1" });
     c.EnableAnnotations();
     c.SupportNonNullableReferenceTypes();
+    c.SchemaFilter<ApiErrorCodeSchemaFilter>();
 
     var xmlCommentsPath = Path.Combine(AppContext.BaseDirectory, "HeartLog.Api.xml");
     if (File.Exists(xmlCommentsPath))
@@ -115,6 +130,26 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
             ValidAlgorithms = ["ES256"]
+        };
+        options.Events = new JwtBearerEvents
+        {
+            OnChallenge = async context =>
+            {
+                if (context.Response.HasStarted)
+                {
+                    return;
+                }
+
+                context.HandleResponse();
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                context.Response.ContentType = "application/json";
+
+                var response = ApiErrorFactory.Create(
+                    ApiErrorCode.Unauthorized,
+                    context.HttpContext.TraceIdentifier);
+
+                await context.Response.WriteAsJsonAsync(response);
+            }
         };
     });
 

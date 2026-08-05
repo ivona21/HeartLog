@@ -200,6 +200,16 @@
                             }
                         }
                     },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "content": {
@@ -612,6 +622,20 @@
     },
     "components": {
         "schemas": {
+            "ApiErrorCode": {
+                "enum": [
+                    "invalidCredentials",
+                    "emailNotConfirmed",
+                    "authenticationUnavailable",
+                    "validationFailed",
+                    "unexpectedError",
+                    "emailAlreadyExists",
+                    "usernameAlreadyExists",
+                    "invalidRequest",
+                    "unauthorized"
+                ],
+                "type": "string"
+            },
             "ApiResponse": {
                 "type": "object",
                 "properties": {
@@ -844,8 +868,14 @@
                 "additionalProperties": false
             },
             "ErrorResponse": {
+                "required": [
+                    "code"
+                ],
                 "type": "object",
                 "properties": {
+                    "code": {
+                        "$ref": "#/components/schemas/ApiErrorCode"
+                    },
                     "message": {
                         "type": "string"
                     },
@@ -857,6 +887,10 @@
                                 "type": "string"
                             }
                         },
+                        "nullable": true
+                    },
+                    "traceId": {
+                        "type": "string",
                         "nullable": true
                     }
                 },
