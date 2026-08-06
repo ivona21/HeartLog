@@ -168,6 +168,7 @@ if (allowedCorsOrigins.Length == 0)
     [
         "http://localhost:5173",
         "http://localhost:5001",
+        "https://app.heartlog.me",
         "https://v0-heart-log-calm-fee5obmca-ivonas-projects-17db0703.vercel.app",
         "https://heart-log-calm.vercel.app",
         "https://71eb8564-b79f-4920-af09-9cd6317e6a88-00-1cgns8l1wsjzo.picard.replit.dev",
