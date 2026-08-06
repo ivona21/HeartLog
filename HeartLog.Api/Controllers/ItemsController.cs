@@ -3,11 +3,14 @@ using HeartLog.Api.Mappers;
 using HeartLog.BLL.Interfaces;
 using HeartLog.DAL.Models;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace HeartLog.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Produces("application/json")]
+[SwaggerTag("Item endpoints.")]
 public class ItemsController: ControllerBase
 {
     private readonly IItemService _itemService;
@@ -18,7 +21,10 @@ public class ItemsController: ControllerBase
     }
     
     [HttpGet]
-    public async Task<IActionResult> GetItems()
+    [ProducesResponseType(typeof(ApiResponse<IEnumerable<ItemDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    [SwaggerOperation(OperationId = "Items_GetAll")]
+    public async Task<ActionResult<ApiResponse<IEnumerable<ItemDto>>>> GetItems()
     {
         IEnumerable<Item> items = await _itemService.GetAllItemsAsync();
         var itemDtos = items.Select(i => new ItemDto
@@ -35,7 +41,12 @@ public class ItemsController: ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> SaveItem(ItemDto item)
+    [Consumes("application/json")]
+    [ProducesResponseType(typeof(ApiResponse<ItemDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    [SwaggerOperation(OperationId = "Items_Save")]
+    public async Task<ActionResult<ApiResponse<ItemDto>>> SaveItem([FromBody] ItemDto item)
     {
         await _itemService.AddItemAsync(new Item { Name = item.Name });
         return Ok(new ApiResponse<ItemDto>(

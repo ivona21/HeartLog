@@ -34,4 +34,12 @@ public static class UserMapper
             Email = session.User.Email
         };
     }
+
+    public static AuthRegistrationResponseDto ToDto(ExternalAuthRegistrationResult registration)
+    {
+        return new AuthRegistrationResponseDto
+        {
+            Email = registration.Email
+        };
+    }
 }

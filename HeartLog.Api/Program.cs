@@ -1,4 +1,5 @@
 using HeartLog.Api.DTOs;
+using HeartLog.Api.Errors;
 using HeartLog.BLL;
 using HeartLog.BLL.Interfaces;
 using HeartLog.DAL.Data;
@@ -11,11 +12,14 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 
 using HeartLog.Api.Middleware;
+using HeartLog.Api.OpenApi;
 using HeartLog.BLL.Models.Auth;
 using HeartLog.BLL.Services.Auth;
 using HeartLog.DAL.Seeding;
 using HeartLog.DAL.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 DotNetEnv.Env.Load();
 var builder = WebApplication.CreateBuilder(args);
@@ -31,22 +35,33 @@ var supabaseAudience = supabaseSettings["JwtAudience"] ?? "authenticated";
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+});
+
 builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+    })
     .ConfigureApiBehaviorOptions(options =>
     {
         options.InvalidModelStateResponseFactory = context =>
         {
             var errors = context.ModelState
-                .Where(e => e.Value.Errors.Count > 0)
+                .Where(e => e.Value?.Errors.Count > 0)
                 .ToDictionary(
                     kvp => kvp.Key,
-                    kvp => kvp.Value.Errors.Select(e => e.ErrorMessage).ToArray()
+                    kvp => kvp.Value!.Errors.Select(e => e.ErrorMessage).ToArray()
                 );
 
             var errorResponse = new ErrorResponse
             {
-                Message = "Validation failed",
-                Errors = errors
+                Code = ApiErrorCode.ValidationFailed,
+                Message = ApiErrorMessages.ValidationFailed,
+                Errors = errors,
+                TraceId = context.HttpContext.TraceIdentifier
             };
 
             return new BadRequestObjectResult(errorResponse);
@@ -68,6 +83,15 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new() { Title = "HeartLog API", Version = "v1" });
+    c.EnableAnnotations();
+    c.SupportNonNullableReferenceTypes();
+    c.SchemaFilter<ApiErrorCodeSchemaFilter>();
+
+    var xmlCommentsPath = Path.Combine(AppContext.BaseDirectory, "HeartLog.Api.xml");
+    if (File.Exists(xmlCommentsPath))
+    {
+        c.IncludeXmlComments(xmlCommentsPath);
+    }
 
     // JWT Authentication setup
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
@@ -78,21 +102,7 @@ builder.Services.AddSwaggerGen(c =>
         Type = SecuritySchemeType.Http,
         Scheme = "bearer"
     });
-
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
-        {
-            new OpenApiSecurityScheme
-            {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                }
-            },
-            Array.Empty<string>()
-        }
-    });
+    c.OperationFilter<AuthorizeOperationFilter>();
 });
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
@@ -121,8 +131,29 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             ValidAlgorithms = ["ES256"]
         };
+        options.Events = new JwtBearerEvents
+        {
+            OnChallenge = async context =>
+            {
+                if (context.Response.HasStarted)
+                {
+                    return;
+                }
+
+                context.HandleResponse();
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                context.Response.ContentType = "application/json";
+
+                var response = ApiErrorFactory.Create(
+                    ApiErrorCode.Unauthorized,
+                    context.HttpContext.TraceIdentifier);
+
+                await context.Response.WriteAsJsonAsync(response);
+            }
+        };
     });
 
+var configuredFrontendBaseUrl = builder.Configuration["Frontend:BaseUrl"];
 var allowedCorsOrigins = builder.Configuration
     .GetSection("Cors:AllowedOrigins")
     .GetChildren()
@@ -142,6 +173,14 @@ if (allowedCorsOrigins.Length == 0)
         "https://71eb8564-b79f-4920-af09-9cd6317e6a88-00-1cgns8l1wsjzo.picard.replit.dev",
         "https://replit.com"
     ];
+}
+
+if (!string.IsNullOrWhiteSpace(configuredFrontendBaseUrl))
+{
+    allowedCorsOrigins = allowedCorsOrigins
+        .Append(configuredFrontendBaseUrl.TrimEnd('/'))
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToArray();
 }
 
 builder.Services.AddCors(options =>
@@ -195,15 +234,18 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapGet("/ping", () => Results.Ok("pong"));
-app.MapGet("/", () => "HeartLog API is running 🚀");
+app.MapGet("/ping", () => Results.Ok("pong"))
+    .ExcludeFromDescription();
+app.MapGet("/", () => "HeartLog API is running 🚀")
+    .ExcludeFromDescription();
 if (app.Environment.IsDevelopment())
 {
     app.MapGet("/test-supabase", async (IExternalAuthService authService) =>
     {
         await authService.TestConnectionAsync();
         return Results.Ok("Supabase connection successful!");
-    });
+    })
+    .ExcludeFromDescription();
 }
 
 app.MapControllers();
