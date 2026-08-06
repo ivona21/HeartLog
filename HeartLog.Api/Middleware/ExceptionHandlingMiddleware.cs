@@ -1,4 +1,5 @@
 using HeartLog.Api.DTOs;
+using HeartLog.Api.Errors;
 using HeartLog.BLL.Exceptions;
 using System.Net;
 
@@ -23,13 +24,18 @@ public class ExceptionHandlingMiddleware
         }
         catch (Exception ex)
         {
+            using var scope = _logger.BeginScope(new Dictionary<string, object?>
+            {
+                ["TraceId"] = context.TraceIdentifier
+            });
+
             if (IsExpectedException(ex))
             {
-                _logger.LogWarning(ex, "A handled request exception occurred.");
+                _logger.LogWarning(ex, "A handled request exception occurred. TraceId: {TraceId}", context.TraceIdentifier);
             }
             else
             {
-                _logger.LogError(ex, "An unhandled exception occurred.");
+                _logger.LogError(ex, "An unhandled exception occurred. TraceId: {TraceId}", context.TraceIdentifier);
             }
 
             await HandleExceptionAsync(context, ex);
@@ -41,6 +47,7 @@ public class ExceptionHandlingMiddleware
         return exception is ExistingEmailException
             or ExistingUsernameException
             or ExternalAuthException
+            or ExternalAuthenticationException
             or InvalidEmotionEntryException
             or UnauthorizedAccessException;
     }
@@ -48,37 +55,75 @@ public class ExceptionHandlingMiddleware
     private static async Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
         context.Response.ContentType = "application/json";
-        
-        var response = new ErrorResponse();
-        
-        switch (exception)
-        {
-            case ExistingEmailException:
-                context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-                response.Message = "Unable to register. Please check your input or try logging in if you already have an account.";
-                break;
-            case ExternalAuthException:
-                context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-                response.Message = "Unable to complete authentication. Please try again.";
-                break;
-            case ExistingUsernameException:
-                context.Response.StatusCode = (int)HttpStatusCode.Conflict;
-                response.Message = exception.Message;
-                break;
-            case InvalidEmotionEntryException:
-                context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-                response.Message = exception.Message;
-                break;
-            case UnauthorizedAccessException:
-                context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
-                response.Message = exception.Message;
-                break;
-            default:
-                context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
-                response.Message = "Internal server error";
-                break;
-        }
+
+        var error = MapException(exception);
+        context.Response.StatusCode = (int)error.StatusCode;
+
+        var response = ApiErrorFactory.Create(
+            error.Code,
+            context.TraceIdentifier,
+            message: error.Message);
 
         await context.Response.WriteAsJsonAsync(response);
     }
+
+    private static ApiErrorDescriptor MapException(Exception exception)
+    {
+        return exception switch
+        {
+            ExternalAuthenticationException authException => MapExternalAuthenticationException(authException),
+            ExistingEmailException => new ApiErrorDescriptor(
+                HttpStatusCode.BadRequest,
+                ApiErrorCode.EmailAlreadyExists,
+                ApiErrorMessages.EmailAlreadyExists),
+            ExistingUsernameException => new ApiErrorDescriptor(
+                HttpStatusCode.Conflict,
+                ApiErrorCode.UsernameAlreadyExists,
+                ApiErrorMessages.UsernameAlreadyExists),
+            InvalidEmotionEntryException invalidEmotionEntryException => new ApiErrorDescriptor(
+                HttpStatusCode.BadRequest,
+                ApiErrorCode.InvalidRequest,
+                invalidEmotionEntryException.Message),
+            UnauthorizedAccessException => new ApiErrorDescriptor(
+                HttpStatusCode.Unauthorized,
+                ApiErrorCode.Unauthorized,
+                ApiErrorMessages.Unauthorized),
+            ExternalAuthException => new ApiErrorDescriptor(
+                HttpStatusCode.ServiceUnavailable,
+                ApiErrorCode.AuthenticationUnavailable,
+                ApiErrorMessages.AuthenticationUnavailable),
+            _ => new ApiErrorDescriptor(
+                HttpStatusCode.InternalServerError,
+                ApiErrorCode.UnexpectedError,
+                ApiErrorMessages.UnexpectedError)
+        };
+    }
+
+    private static ApiErrorDescriptor MapExternalAuthenticationException(ExternalAuthenticationException exception)
+    {
+        return exception.Reason switch
+        {
+            ExternalAuthenticationFailureReason.InvalidCredentials => new ApiErrorDescriptor(
+                HttpStatusCode.Unauthorized,
+                ApiErrorCode.InvalidCredentials,
+                ApiErrorMessages.InvalidCredentials),
+            ExternalAuthenticationFailureReason.EmailNotConfirmed => new ApiErrorDescriptor(
+                HttpStatusCode.Unauthorized,
+                ApiErrorCode.EmailNotConfirmed,
+                ApiErrorMessages.EmailNotConfirmed),
+            ExternalAuthenticationFailureReason.ProviderUnavailable => new ApiErrorDescriptor(
+                HttpStatusCode.ServiceUnavailable,
+                ApiErrorCode.AuthenticationUnavailable,
+                ApiErrorMessages.AuthenticationUnavailable),
+            _ => new ApiErrorDescriptor(
+                HttpStatusCode.InternalServerError,
+                ApiErrorCode.UnexpectedError,
+                ApiErrorMessages.UnexpectedError)
+        };
+    }
+
+    private sealed record ApiErrorDescriptor(
+        HttpStatusCode StatusCode,
+        ApiErrorCode Code,
+        string Message);
 }

@@ -165,14 +165,45 @@ public class SupabaseAuthService : IExternalAuthService
         }
         catch (GotrueException ex)
         {
-            if (ex.Reason is FailureHint.Reason.UserBadLogin
-                or FailureHint.Reason.UserBadPassword
-                or FailureHint.Reason.UserBadEmailAddress)
+            if (IsInvalidCredentialsFailure(ex))
             {
-                throw new UnauthorizedAccessException("Invalid email or password.", ex);
+                throw new ExternalAuthenticationException(
+                    ExternalAuthenticationFailureReason.InvalidCredentials,
+                    "Authentication provider rejected the supplied credentials.",
+                    ex);
+            }
+
+            if (ex.Reason is FailureHint.Reason.UserEmailNotConfirmed)
+            {
+                throw new ExternalAuthenticationException(
+                    ExternalAuthenticationFailureReason.EmailNotConfirmed,
+                    "Authentication provider reported an unconfirmed email.",
+                    ex);
+            }
+
+            if (IsTemporaryProviderFailure(ex))
+            {
+                throw new ExternalAuthenticationException(
+                    ExternalAuthenticationFailureReason.ProviderUnavailable,
+                    "Authentication provider is temporarily unavailable.",
+                    ex);
             }
 
             throw new ExternalAuthException("Supabase login failed.", ex);
+        }
+        catch (HttpRequestException ex)
+        {
+            throw new ExternalAuthenticationException(
+                ExternalAuthenticationFailureReason.ProviderUnavailable,
+                "Authentication provider request failed.",
+                ex);
+        }
+        catch (TaskCanceledException ex)
+        {
+            throw new ExternalAuthenticationException(
+                ExternalAuthenticationFailureReason.ProviderUnavailable,
+                "Authentication provider request timed out.",
+                ex);
         }
         catch (ExternalAuthException)
         {
@@ -182,6 +213,20 @@ public class SupabaseAuthService : IExternalAuthService
         {
             throw new ExternalAuthException("Supabase login failed.", ex);
         }
+    }
+
+    private static bool IsInvalidCredentialsFailure(GotrueException exception)
+    {
+        return exception.Reason is FailureHint.Reason.UserBadLogin
+            or FailureHint.Reason.UserBadPassword
+            or FailureHint.Reason.UserBadEmailAddress
+            or FailureHint.Reason.UserBadMultiple;
+    }
+
+    private static bool IsTemporaryProviderFailure(GotrueException exception)
+    {
+        return exception.Reason is FailureHint.Reason.Offline
+            or FailureHint.Reason.UserTooManyRequests;
     }
 
     public async Task<ExternalAuthSession> RefreshAsync(string refreshToken)
