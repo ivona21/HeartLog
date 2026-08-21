@@ -154,6 +154,130 @@ public class SupabaseAuthService : IExternalAuthService
         }
     }
 
+    public async Task SendPasswordResetAsync(string email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            throw new ExternalAuthException("Email is required.");
+        }
+
+        try
+        {
+            using var httpClient = new HttpClient();
+            using var request = new HttpRequestMessage(
+                HttpMethod.Post,
+                $"{_settings.ProjectUrl.TrimEnd('/')}/auth/v1/recover")
+            {
+                Content = JsonContent.Create(new PasswordRecoveryRequest(email))
+            };
+
+            request.Headers.Add("apikey", _settings.PublishableKey);
+            request.Headers.Add("Authorization", $"Bearer {_settings.PublishableKey}");
+
+            using var response = await httpClient.SendAsync(request);
+            if ((int)response.StatusCode >= 500)
+            {
+                throw new ExternalAuthException($"Supabase password reset email failed with status code {(int)response.StatusCode}.");
+            }
+        }
+        catch (ExternalAuthException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            throw new ExternalAuthException("Supabase password reset email failed.", ex);
+        }
+    }
+
+    public async Task<ExternalAuthSession> ConfirmPasswordResetAsync(string tokenHash, string type)
+    {
+        if (!IsSupportedPasswordResetType(type))
+        {
+            throw new EmailConfirmationException(
+                EmailConfirmationFailureReason.Invalid,
+                "Unsupported password reset type.");
+        }
+
+        try
+        {
+            var client = await CreateClientAsync();
+            var session = await client.Auth.VerifyTokenHash(
+                tokenHash,
+                Supabase.Gotrue.Constants.EmailOtpType.Recovery);
+
+            return ToExternalAuthSession(session, "password reset confirmation");
+        }
+        catch (ExternalAuthException)
+        {
+            throw;
+        }
+        catch (GotrueException ex)
+        {
+            throw new EmailConfirmationException(
+                GetEmailConfirmationFailureReason(ex),
+                "Supabase password reset confirmation failed.",
+                ex);
+        }
+        catch (Exception ex)
+        {
+            throw new EmailConfirmationException(
+                EmailConfirmationFailureReason.Invalid,
+                "Supabase password reset confirmation failed.",
+                ex);
+        }
+    }
+
+    public async Task ResetPasswordAsync(string recoveryAccessToken, string newPassword)
+    {
+        if (string.IsNullOrWhiteSpace(recoveryAccessToken))
+        {
+            throw new UnauthorizedAccessException("Invalid password reset token.");
+        }
+
+        if (string.IsNullOrWhiteSpace(newPassword))
+        {
+            throw new ExternalAuthException("Password is required.");
+        }
+
+        try
+        {
+            using var httpClient = new HttpClient();
+            using var request = new HttpRequestMessage(
+                HttpMethod.Put,
+                $"{_settings.ProjectUrl.TrimEnd('/')}/auth/v1/user")
+            {
+                Content = JsonContent.Create(new UpdatePasswordRequest(newPassword))
+            };
+
+            request.Headers.Add("apikey", _settings.PublishableKey);
+            request.Headers.Add("Authorization", $"Bearer {recoveryAccessToken}");
+
+            using var response = await httpClient.SendAsync(request);
+            if (response.StatusCode is HttpStatusCode.BadRequest or HttpStatusCode.Unauthorized)
+            {
+                throw new UnauthorizedAccessException("Invalid password reset token.");
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new ExternalAuthException($"Supabase password reset failed with status code {(int)response.StatusCode}.");
+            }
+        }
+        catch (UnauthorizedAccessException)
+        {
+            throw;
+        }
+        catch (ExternalAuthException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            throw new ExternalAuthException("Supabase password reset failed.", ex);
+        }
+    }
+
     public async Task<ExternalAuthSession> LoginAsync(string email, string password)
     {
         try
@@ -384,12 +508,23 @@ public class SupabaseAuthService : IExternalAuthService
         return string.Equals(type, "email", StringComparison.OrdinalIgnoreCase);
     }
 
+    private static bool IsSupportedPasswordResetType(string type)
+    {
+        return string.Equals(type, "recovery", StringComparison.OrdinalIgnoreCase);
+    }
+
     private sealed record RefreshTokenRequest(
         [property: JsonPropertyName("refresh_token")] string RefreshToken);
 
     private sealed record ResendConfirmationRequest(
         [property: JsonPropertyName("type")] string Type,
         [property: JsonPropertyName("email")] string Email);
+
+    private sealed record PasswordRecoveryRequest(
+        [property: JsonPropertyName("email")] string Email);
+
+    private sealed record UpdatePasswordRequest(
+        [property: JsonPropertyName("password")] string Password);
 
     private sealed class SupabaseTokenResponse
     {
