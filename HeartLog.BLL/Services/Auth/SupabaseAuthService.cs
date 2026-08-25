@@ -21,10 +21,14 @@ public class SupabaseAuthService : IExternalAuthService
     private const string AuthRefreshTokenPath = "/auth/v1/token?grant_type=refresh_token";
 
     private readonly SupabaseSettings _settings;
+    private readonly IHttpClientFactory _httpClientFactory;
 
-    public SupabaseAuthService(IOptions<SupabaseSettings> settings)
+    public SupabaseAuthService(
+        IOptions<SupabaseSettings> settings,
+        IHttpClientFactory httpClientFactory)
     {
         _settings = settings.Value;
+        _httpClientFactory = httpClientFactory;
     }
 
     public async Task TestConnectionAsync()
@@ -133,7 +137,7 @@ public class SupabaseAuthService : IExternalAuthService
 
         try
         {
-            using var httpClient = new HttpClient();
+            var httpClient = _httpClientFactory.CreateClient();
             using var request = new HttpRequestMessage(
                 HttpMethod.Post,
                 $"{_settings.ProjectUrl.TrimEnd('/')}{AuthResendPath}")
@@ -171,7 +175,7 @@ public class SupabaseAuthService : IExternalAuthService
 
         try
         {
-            using var httpClient = new HttpClient();
+            var httpClient = _httpClientFactory.CreateClient();
             using var request = new HttpRequestMessage(
                 HttpMethod.Post,
                 $"{_settings.ProjectUrl.TrimEnd('/')}{AuthRecoverPath}")
@@ -249,7 +253,7 @@ public class SupabaseAuthService : IExternalAuthService
 
         try
         {
-            using var httpClient = new HttpClient();
+            var httpClient = _httpClientFactory.CreateClient();
             using var request = new HttpRequestMessage(
                 HttpMethod.Put,
                 $"{_settings.ProjectUrl.TrimEnd('/')}{AuthUserPath}")
@@ -369,7 +373,7 @@ public class SupabaseAuthService : IExternalAuthService
 
         try
         {
-            using var httpClient = new HttpClient();
+            var httpClient = _httpClientFactory.CreateClient();
             using var request = new HttpRequestMessage(
                 HttpMethod.Post,
                 $"{_settings.ProjectUrl.TrimEnd('/')}{AuthRefreshTokenPath}")
