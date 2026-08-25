@@ -12,6 +12,14 @@ namespace HeartLog.BLL.Services.Auth;
 
 public class SupabaseAuthService : IExternalAuthService
 {
+    private const string SignupEmailType = "email";
+    private const string SignupResendType = "signup";
+    private const string PasswordRecoveryType = "recovery";
+    private const string AuthResendPath = "/auth/v1/resend";
+    private const string AuthRecoverPath = "/auth/v1/recover";
+    private const string AuthUserPath = "/auth/v1/user";
+    private const string AuthRefreshTokenPath = "/auth/v1/token?grant_type=refresh_token";
+
     private readonly SupabaseSettings _settings;
 
     public SupabaseAuthService(IOptions<SupabaseSettings> settings)
@@ -128,10 +136,10 @@ public class SupabaseAuthService : IExternalAuthService
             using var httpClient = new HttpClient();
             using var request = new HttpRequestMessage(
                 HttpMethod.Post,
-                $"{_settings.ProjectUrl.TrimEnd('/')}/auth/v1/resend")
+                $"{_settings.ProjectUrl.TrimEnd('/')}{AuthResendPath}")
             {
                 Content = JsonContent.Create(new ResendConfirmationRequest(
-                    Type: "signup",
+                    Type: SignupResendType,
                     Email: email))
             };
 
@@ -166,7 +174,7 @@ public class SupabaseAuthService : IExternalAuthService
             using var httpClient = new HttpClient();
             using var request = new HttpRequestMessage(
                 HttpMethod.Post,
-                $"{_settings.ProjectUrl.TrimEnd('/')}/auth/v1/recover")
+                $"{_settings.ProjectUrl.TrimEnd('/')}{AuthRecoverPath}")
             {
                 Content = JsonContent.Create(new PasswordRecoveryRequest(email))
             };
@@ -244,7 +252,7 @@ public class SupabaseAuthService : IExternalAuthService
             using var httpClient = new HttpClient();
             using var request = new HttpRequestMessage(
                 HttpMethod.Put,
-                $"{_settings.ProjectUrl.TrimEnd('/')}/auth/v1/user")
+                $"{_settings.ProjectUrl.TrimEnd('/')}{AuthUserPath}")
             {
                 Content = JsonContent.Create(new UpdatePasswordRequest(newPassword))
             };
@@ -364,7 +372,7 @@ public class SupabaseAuthService : IExternalAuthService
             using var httpClient = new HttpClient();
             using var request = new HttpRequestMessage(
                 HttpMethod.Post,
-                $"{_settings.ProjectUrl.TrimEnd('/')}/auth/v1/token?grant_type=refresh_token")
+                $"{_settings.ProjectUrl.TrimEnd('/')}{AuthRefreshTokenPath}")
             {
                 Content = JsonContent.Create(new RefreshTokenRequest(refreshToken))
             };
@@ -504,12 +512,12 @@ public class SupabaseAuthService : IExternalAuthService
 
     private static bool IsSupportedEmailConfirmationType(string type)
     {
-        return string.Equals(type, "email", StringComparison.OrdinalIgnoreCase);
+        return string.Equals(type, SignupEmailType, StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool IsSupportedPasswordResetType(string type)
     {
-        return string.Equals(type, "recovery", StringComparison.OrdinalIgnoreCase);
+        return string.Equals(type, PasswordRecoveryType, StringComparison.OrdinalIgnoreCase);
     }
 
     private sealed record RefreshTokenRequest(
