@@ -46,6 +46,21 @@ public class UserService: IUserService
         await _externalAuthService.ResendConfirmationAsync(email);
     }
 
+    public async Task SendPasswordResetAsync(string email)
+    {
+        await _externalAuthService.SendPasswordResetAsync(email);
+    }
+
+    public async Task<ExternalAuthSession> ConfirmPasswordResetAsync(string tokenHash, string type)
+    {
+        return await _externalAuthService.ConfirmPasswordResetAsync(tokenHash, type);
+    }
+
+    public async Task ResetPasswordAsync(string recoveryAccessToken, string newPassword)
+    {
+        await _externalAuthService.ResetPasswordAsync(recoveryAccessToken, newPassword);
+    }
+
     public async Task<ExternalAuthSession> LoginUserAsync(string email, string password)
     {
         var session = await _externalAuthService.LoginAsync(email, password);
