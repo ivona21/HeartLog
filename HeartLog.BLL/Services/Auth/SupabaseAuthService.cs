@@ -172,7 +172,6 @@ public class SupabaseAuthService : IExternalAuthService
             };
 
             request.Headers.Add("apikey", _settings.PublishableKey);
-            request.Headers.Add("Authorization", $"Bearer {_settings.PublishableKey}");
 
             using var response = await httpClient.SendAsync(request);
             if ((int)response.StatusCode >= 500)
