@@ -107,6 +107,89 @@ public class AuthController : ControllerBase
             Success: true,
             Message: "If the account is waiting for confirmation, a new confirmation email has been sent."));
     }
+
+    [AllowAnonymous]
+    [HttpPost("forgot-password")]
+    [Consumes("application/json")]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    [SwaggerOperation(OperationId = "Auth_ForgotPassword")]
+    public async Task<ActionResult<ApiResponse>> ForgotPassword([FromBody] ForgotPasswordRequestDto request)
+    {
+        await _userService.SendPasswordResetAsync(request.Email);
+
+        return Ok(new ApiResponse(
+            Success: true,
+            Message: "If an account exists for this email, a password reset link has been sent."));
+    }
+
+    [AllowAnonymous]
+    [HttpGet("reset-password/confirm")]
+    [ProducesResponseType(StatusCodes.Status302Found)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    [SwaggerOperation(
+        OperationId = "Auth_ConfirmPasswordReset",
+        Description = "Confirms the Supabase recovery token, stores a short-lived HTTP-only recovery cookie, and redirects to the configured frontend reset-password route with status ready, expired, or invalid.")]
+    public async Task<IActionResult> ConfirmPasswordReset(
+        [FromQuery(Name = "token_hash")] string tokenHash,
+        [FromQuery] string type)
+    {
+        if (string.IsNullOrWhiteSpace(tokenHash))
+        {
+            return RedirectToPasswordResetStatus("invalid");
+        }
+
+        if (string.IsNullOrWhiteSpace(type))
+        {
+            return RedirectToPasswordResetStatus("invalid");
+        }
+
+        try
+        {
+            var session = await _userService.ConfirmPasswordResetAsync(tokenHash, type);
+            SetPasswordResetCookie(session);
+
+            return RedirectToPasswordResetStatus("ready");
+        }
+        catch (EmailConfirmationException ex)
+        {
+            return RedirectToPasswordResetStatus(
+                ex.Reason == EmailConfirmationFailureReason.Expired
+                    ? "expired"
+                    : "invalid");
+        }
+    }
+
+    [AllowAnonymous]
+    [HttpPost("reset-password")]
+    [Consumes("application/json")]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status503ServiceUnavailable)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    [SwaggerOperation(
+        OperationId = "Auth_ResetPassword",
+        Description = "Updates the Supabase password using the short-lived HTTP-only recovery cookie. Frontend requests must include credentials.")]
+    public async Task<ActionResult<ApiResponse>> ResetPassword([FromBody] ResetPasswordRequestDto request)
+    {
+        if (!Request.Cookies.TryGetValue(PasswordResetCookie.Name, out var recoveryAccessToken)
+            || string.IsNullOrWhiteSpace(recoveryAccessToken))
+        {
+            throw new UnauthorizedAccessException("Invalid password reset token.");
+        }
+
+        await _userService.ResetPasswordAsync(recoveryAccessToken, request.Password);
+
+        Response.Cookies.Delete(
+            PasswordResetCookie.Name,
+            PasswordResetCookie.CreateDeleteOptions(_environment));
+
+        return Ok(new ApiResponse(
+            Success: true,
+            Message: "Password reset successful."));
+    }
     
     [AllowAnonymous]
     [HttpPost("login")]
@@ -227,11 +310,34 @@ public class AuthController : ControllerBase
             RefreshTokenCookie.CreateOptions(_environment));
     }
 
+    private void SetPasswordResetCookie(ExternalAuthSession session)
+    {
+        if (string.IsNullOrWhiteSpace(session.AccessToken))
+        {
+            throw new ExternalAuthException("Authentication provider did not return a password reset token.");
+        }
+
+        Response.Cookies.Append(
+            PasswordResetCookie.Name,
+            session.AccessToken,
+            PasswordResetCookie.CreateOptions(_environment));
+    }
+
     private RedirectResult RedirectToEmailConfirmationStatus(string status)
     {
         var frontendBaseUrl = _configuration["Frontend:BaseUrl"]
                               ?? throw new InvalidOperationException("Frontend base URL is missing.");
         var redirectUrl = $"{frontendBaseUrl.TrimEnd('/')}/email-confirmation";
+
+        var separator = redirectUrl.Contains('?') ? '&' : '?';
+        return Redirect($"{redirectUrl}{separator}status={Uri.EscapeDataString(status)}");
+    }
+
+    private RedirectResult RedirectToPasswordResetStatus(string status)
+    {
+        var frontendBaseUrl = _configuration["Frontend:BaseUrl"]
+                              ?? throw new InvalidOperationException("Frontend base URL is missing.");
+        var redirectUrl = $"{frontendBaseUrl.TrimEnd('/')}/reset-password";
 
         var separator = redirectUrl.Contains('?') ? '&' : '?';
         return Redirect($"{redirectUrl}{separator}status={Uri.EscapeDataString(status)}");
