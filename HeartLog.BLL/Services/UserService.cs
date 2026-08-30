@@ -25,14 +25,6 @@ public class UserService: IUserService
     
     public async Task<ExternalAuthRegistrationResult> RegisterUserAsync(User user, string password)
     {
-        // check if user already exists
-        var existingUser = await _userRepository.GetByEmailAsync(user.Email);
-        if (existingUser != null)
-        {
-            _logger.LogInformation("Attempted registration with existing email: {Email}", user.Email);
-            throw new ExistingEmailException(user.Email);
-        }
-
         return await _externalAuthService.RegisterAsync(user.Email, password);
     }
 
