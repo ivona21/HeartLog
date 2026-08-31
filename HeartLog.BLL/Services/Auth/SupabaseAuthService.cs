@@ -43,17 +43,13 @@ public class SupabaseAuthService : IExternalAuthService
             var client = await CreateClientAsync();
             await client.Auth.SignUp(email, password);
 
-            return new ExternalAuthRegistrationResult
-            {
-                Email = email
-            };
+            return ToRegistrationResult(email);
         }
         catch (GotrueException ex) when (IsDuplicateRegistrationFailure(ex))
         {
-            return new ExternalAuthRegistrationResult
-            {
-                Email = email
-            };
+            await ResendConfirmationAsync(email);
+
+            return ToRegistrationResult(email);
         }
         catch (ExternalAuthException)
         {
@@ -63,6 +59,14 @@ public class SupabaseAuthService : IExternalAuthService
         {
             throw new ExternalAuthException("Supabase registration failed.", ex);
         }
+    }
+
+    private static ExternalAuthRegistrationResult ToRegistrationResult(string email)
+    {
+        return new ExternalAuthRegistrationResult
+        {
+            Email = email
+        };
     }
 
     private static bool IsDuplicateRegistrationFailure(GotrueException exception)
