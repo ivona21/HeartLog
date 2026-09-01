@@ -71,19 +71,7 @@ public class SupabaseAuthService : IExternalAuthService
 
     private static bool IsDuplicateRegistrationFailure(GotrueException exception)
     {
-        if (exception.Reason is FailureHint.Reason.UserAlreadyRegistered)
-        {
-            return true;
-        }
-
-        var details = string.Join(
-            ' ',
-            exception.Message,
-            exception.Content ?? string.Empty,
-            exception.Reason.ToString());
-
-        return details.Contains("already registered", StringComparison.OrdinalIgnoreCase)
-            || details.Contains("already been registered", StringComparison.OrdinalIgnoreCase);
+        return exception.Reason is FailureHint.Reason.UserAlreadyRegistered;
     }
 
     public async Task<ExternalAuthEmailConfirmationResult> ConfirmEmailAsync(string tokenHash, string type)
