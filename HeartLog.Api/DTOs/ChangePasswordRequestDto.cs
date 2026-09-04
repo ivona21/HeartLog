@@ -9,6 +9,6 @@ public class ChangePasswordRequestDto
     public string CurrentPassword { get; set; } = string.Empty;
 
     [Required]
-    [PasswordComplexity(MinimumLength = 8)]
+    [PasswordComplexity(MinimumLength = ValidationConstants.PasswordMinimumLength)]
     public string NewPassword { get; set; } = string.Empty;
 }

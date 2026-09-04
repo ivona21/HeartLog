@@ -6,6 +6,6 @@ namespace HeartLog.Api.DTOs;
 public class ResetPasswordRequestDto
 {
     [Required]
-    [PasswordComplexity(MinimumLength = 8)]
+    [PasswordComplexity(MinimumLength = ValidationConstants.PasswordMinimumLength)]
     public string Password { get; set; } = string.Empty;
 }

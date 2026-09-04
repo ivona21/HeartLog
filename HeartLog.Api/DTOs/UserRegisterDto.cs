@@ -10,6 +10,6 @@ public class UserRegisterDto
     public string Email { get; set; } = string.Empty;
     
     [Required]
-    [PasswordComplexity(MinimumLength = 8)]
+    [PasswordComplexity(MinimumLength = ValidationConstants.PasswordMinimumLength)]
     public string Password { get; set; } = string.Empty;
 }
