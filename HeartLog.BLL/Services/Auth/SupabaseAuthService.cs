@@ -19,6 +19,7 @@ public class SupabaseAuthService : IExternalAuthService
     private const string AuthRecoverPath = "/auth/v1/recover";
     private const string AuthUserPath = "/auth/v1/user";
     private const string AuthRefreshTokenPath = "/auth/v1/token?grant_type=refresh_token";
+    private const string AuthLogoutOtherSessionsPath = "/auth/v1/logout?scope=others";
 
     private readonly SupabaseSettings _settings;
     private readonly IHttpClientFactory _httpClientFactory;
@@ -144,11 +145,6 @@ public class SupabaseAuthService : IExternalAuthService
 
     public async Task ResendConfirmationAsync(string email)
     {
-        if (string.IsNullOrWhiteSpace(email))
-        {
-            throw new ExternalAuthException("Email is required.");
-        }
-
         try
         {
             var httpClient = _httpClientFactory.CreateClient();
@@ -182,11 +178,6 @@ public class SupabaseAuthService : IExternalAuthService
 
     public async Task SendPasswordResetAsync(string email)
     {
-        if (string.IsNullOrWhiteSpace(email))
-        {
-            throw new ExternalAuthException("Email is required.");
-        }
-
         try
         {
             var httpClient = _httpClientFactory.CreateClient();
@@ -260,11 +251,6 @@ public class SupabaseAuthService : IExternalAuthService
             throw new UnauthorizedAccessException("Invalid password reset token.");
         }
 
-        if (string.IsNullOrWhiteSpace(newPassword))
-        {
-            throw new ExternalAuthException("Password is required.");
-        }
-
         try
         {
             var httpClient = _httpClientFactory.CreateClient();
@@ -300,6 +286,93 @@ public class SupabaseAuthService : IExternalAuthService
         catch (Exception ex)
         {
             throw new ExternalAuthException("Supabase password reset failed.", ex);
+        }
+    }
+
+    public async Task ChangePasswordAsync(
+        string email,
+        string accessToken,
+        string currentPassword,
+        string newPassword)
+    {
+        if (string.IsNullOrWhiteSpace(accessToken))
+        {
+            throw new UnauthorizedAccessException("Invalid access token.");
+        }
+
+        await LoginAsync(email, currentPassword);
+
+        try
+        {
+            var httpClient = _httpClientFactory.CreateClient();
+            using var request = new HttpRequestMessage(
+                HttpMethod.Put,
+                $"{_settings.ProjectUrl.TrimEnd('/')}{AuthUserPath}")
+            {
+                Content = JsonContent.Create(new UpdatePasswordRequest(
+                    Password: newPassword,
+                    CurrentPassword: currentPassword))
+            };
+
+            request.Headers.Add("apikey", _settings.PublishableKey);
+            request.Headers.Add("Authorization", $"Bearer {accessToken}");
+
+            using var response = await httpClient.SendAsync(request);
+            if (response.StatusCode is HttpStatusCode.BadRequest
+                or HttpStatusCode.Unauthorized
+                or HttpStatusCode.UnprocessableEntity)
+            {
+                throw new ExternalAuthenticationException(
+                    ExternalAuthenticationFailureReason.InvalidCredentials,
+                    "Supabase rejected the password change request.");
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new ExternalAuthException($"Supabase password change failed with status code {(int)response.StatusCode}.");
+            }
+        }
+        catch (ExternalAuthenticationException)
+        {
+            throw;
+        }
+        catch (ExternalAuthException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            throw new ExternalAuthException("Supabase password change failed.", ex);
+        }
+
+        await SignOutOtherSessionsAsync(accessToken);
+    }
+
+    private async Task SignOutOtherSessionsAsync(string accessToken)
+    {
+        try
+        {
+            var httpClient = _httpClientFactory.CreateClient();
+            using var request = new HttpRequestMessage(
+                HttpMethod.Post,
+                $"{_settings.ProjectUrl.TrimEnd('/')}{AuthLogoutOtherSessionsPath}");
+
+            request.Headers.Add("apikey", _settings.PublishableKey);
+            request.Headers.Add("Authorization", $"Bearer {accessToken}");
+
+            using var response = await httpClient.SendAsync(request);
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new ExternalAuthException($"Supabase other-session sign-out failed with status code {(int)response.StatusCode}.");
+            }
+        }
+        catch (ExternalAuthException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            throw new ExternalAuthException("Supabase other-session sign-out failed.", ex);
         }
     }
 
@@ -549,7 +622,8 @@ public class SupabaseAuthService : IExternalAuthService
         [property: JsonPropertyName("email")] string Email);
 
     private sealed record UpdatePasswordRequest(
-        [property: JsonPropertyName("password")] string Password);
+        [property: JsonPropertyName("password")] string Password,
+        [property: JsonPropertyName("current_password")] string? CurrentPassword = null);
 
     private sealed class SupabaseTokenResponse
     {
