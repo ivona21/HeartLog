@@ -148,6 +148,36 @@ Success response:
 
 Use `/api/auth/me` for local HeartLog user state. Do not decode tokens in the frontend to infer app user identity.
 
+## Change Password
+
+```http
+POST /api/auth/change-password
+Authorization: Bearer ACCESS_TOKEN
+Content-Type: application/json
+
+{
+  "currentPassword": "OldPass123!",
+  "newPassword": "NewPass123!"
+}
+```
+
+Expected response:
+
+```json
+{
+  "success": true,
+  "message": "Password changed successfully"
+}
+```
+
+Important details:
+
+- This endpoint is only for authenticated users.
+- The backend resolves the current HeartLog user from the bearer token and uses that user's email for Supabase verification.
+- The current password is required and bad credentials return `401`.
+- The new password uses the same API password complexity validation as registration and reset password.
+- No local `Users` table password field is updated. Supabase owns password storage.
+
 ## Authenticated Requests
 
 Send the access token on protected API calls:
@@ -189,6 +219,7 @@ Current expected behavior:
 - Missing, invalid, or expired refresh cookie: `401 Unauthorized`.
 - Valid Supabase token but no linked local HeartLog user: `401 Unauthorized`.
 - Bad login credentials: `401 Unauthorized`.
+- Bad current password during password change: `401 Unauthorized`.
 - Registration email already exists locally: `400 Bad Request`.
 - Temporary auth provider issue: controlled authentication error response.
 

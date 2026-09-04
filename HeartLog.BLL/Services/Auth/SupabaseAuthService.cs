@@ -303,6 +303,80 @@ public class SupabaseAuthService : IExternalAuthService
         }
     }
 
+    public async Task ChangePasswordAsync(
+        string email,
+        string accessToken,
+        string currentPassword,
+        string newPassword)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            throw new UnauthorizedAccessException("Authenticated user could not be resolved.");
+        }
+
+        if (string.IsNullOrWhiteSpace(accessToken))
+        {
+            throw new UnauthorizedAccessException("Invalid access token.");
+        }
+
+        if (string.IsNullOrWhiteSpace(currentPassword))
+        {
+            throw new ExternalAuthenticationException(
+                ExternalAuthenticationFailureReason.InvalidCredentials,
+                "Current password is required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(newPassword))
+        {
+            throw new ExternalAuthException("Password is required.");
+        }
+
+        await LoginAsync(email, currentPassword);
+
+        try
+        {
+            var httpClient = _httpClientFactory.CreateClient();
+            using var request = new HttpRequestMessage(
+                HttpMethod.Put,
+                $"{_settings.ProjectUrl.TrimEnd('/')}{AuthUserPath}")
+            {
+                Content = JsonContent.Create(new UpdatePasswordRequest(
+                    Password: newPassword,
+                    CurrentPassword: currentPassword))
+            };
+
+            request.Headers.Add("apikey", _settings.PublishableKey);
+            request.Headers.Add("Authorization", $"Bearer {accessToken}");
+
+            using var response = await httpClient.SendAsync(request);
+            if (response.StatusCode is HttpStatusCode.BadRequest
+                or HttpStatusCode.Unauthorized
+                or HttpStatusCode.UnprocessableEntity)
+            {
+                throw new ExternalAuthenticationException(
+                    ExternalAuthenticationFailureReason.InvalidCredentials,
+                    "Supabase rejected the password change request.");
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new ExternalAuthException($"Supabase password change failed with status code {(int)response.StatusCode}.");
+            }
+        }
+        catch (ExternalAuthenticationException)
+        {
+            throw;
+        }
+        catch (ExternalAuthException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            throw new ExternalAuthException("Supabase password change failed.", ex);
+        }
+    }
+
     public async Task<ExternalAuthSession> LoginAsync(string email, string password)
     {
         try
@@ -549,7 +623,8 @@ public class SupabaseAuthService : IExternalAuthService
         [property: JsonPropertyName("email")] string Email);
 
     private sealed record UpdatePasswordRequest(
-        [property: JsonPropertyName("password")] string Password);
+        [property: JsonPropertyName("password")] string Password,
+        [property: JsonPropertyName("current_password")] string? CurrentPassword = null);
 
     private sealed class SupabaseTokenResponse
     {
