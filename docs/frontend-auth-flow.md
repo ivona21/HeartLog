@@ -176,6 +176,9 @@ Important details:
 - The backend resolves the current HeartLog user from the bearer token and uses that user's email for Supabase verification.
 - The current password is required and bad credentials return `401`.
 - The new password uses the same API password complexity validation as registration and reset password.
+- After the password changes, the current session stays logged in.
+- Other sessions for the same Supabase user are signed out by revoking their refresh tokens.
+- Already-issued access tokens in other sessions may continue working until they expire.
 - No local `Users` table password field is updated. Supabase owns password storage.
 
 ## Authenticated Requests

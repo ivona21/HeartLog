@@ -19,6 +19,7 @@ public class SupabaseAuthService : IExternalAuthService
     private const string AuthRecoverPath = "/auth/v1/recover";
     private const string AuthUserPath = "/auth/v1/user";
     private const string AuthRefreshTokenPath = "/auth/v1/token?grant_type=refresh_token";
+    private const string AuthLogoutOtherSessionsPath = "/auth/v1/logout?scope=others";
 
     private readonly SupabaseSettings _settings;
     private readonly IHttpClientFactory _httpClientFactory;
@@ -374,6 +375,36 @@ public class SupabaseAuthService : IExternalAuthService
         catch (Exception ex)
         {
             throw new ExternalAuthException("Supabase password change failed.", ex);
+        }
+
+        await SignOutOtherSessionsAsync(accessToken);
+    }
+
+    private async Task SignOutOtherSessionsAsync(string accessToken)
+    {
+        try
+        {
+            var httpClient = _httpClientFactory.CreateClient();
+            using var request = new HttpRequestMessage(
+                HttpMethod.Post,
+                $"{_settings.ProjectUrl.TrimEnd('/')}{AuthLogoutOtherSessionsPath}");
+
+            request.Headers.Add("apikey", _settings.PublishableKey);
+            request.Headers.Add("Authorization", $"Bearer {accessToken}");
+
+            using var response = await httpClient.SendAsync(request);
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new ExternalAuthException($"Supabase other-session sign-out failed with status code {(int)response.StatusCode}.");
+            }
+        }
+        catch (ExternalAuthException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            throw new ExternalAuthException("Supabase other-session sign-out failed.", ex);
         }
     }
 
