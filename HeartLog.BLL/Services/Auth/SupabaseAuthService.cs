@@ -145,11 +145,6 @@ public class SupabaseAuthService : IExternalAuthService
 
     public async Task ResendConfirmationAsync(string email)
     {
-        if (string.IsNullOrWhiteSpace(email))
-        {
-            throw new ExternalAuthException("Email is required.");
-        }
-
         try
         {
             var httpClient = _httpClientFactory.CreateClient();
@@ -183,11 +178,6 @@ public class SupabaseAuthService : IExternalAuthService
 
     public async Task SendPasswordResetAsync(string email)
     {
-        if (string.IsNullOrWhiteSpace(email))
-        {
-            throw new ExternalAuthException("Email is required.");
-        }
-
         try
         {
             var httpClient = _httpClientFactory.CreateClient();
@@ -261,11 +251,6 @@ public class SupabaseAuthService : IExternalAuthService
             throw new UnauthorizedAccessException("Invalid password reset token.");
         }
 
-        if (string.IsNullOrWhiteSpace(newPassword))
-        {
-            throw new ExternalAuthException("Password is required.");
-        }
-
         try
         {
             var httpClient = _httpClientFactory.CreateClient();
@@ -310,26 +295,9 @@ public class SupabaseAuthService : IExternalAuthService
         string currentPassword,
         string newPassword)
     {
-        if (string.IsNullOrWhiteSpace(email))
-        {
-            throw new UnauthorizedAccessException("Authenticated user could not be resolved.");
-        }
-
         if (string.IsNullOrWhiteSpace(accessToken))
         {
             throw new UnauthorizedAccessException("Invalid access token.");
-        }
-
-        if (string.IsNullOrWhiteSpace(currentPassword))
-        {
-            throw new ExternalAuthenticationException(
-                ExternalAuthenticationFailureReason.InvalidCredentials,
-                "Current password is required.");
-        }
-
-        if (string.IsNullOrWhiteSpace(newPassword))
-        {
-            throw new ExternalAuthException("Password is required.");
         }
 
         await LoginAsync(email, currentPassword);
