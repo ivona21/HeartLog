@@ -300,7 +300,15 @@ public class SupabaseAuthService : IExternalAuthService
             throw new UnauthorizedAccessException("Invalid access token.");
         }
 
-        await LoginAsync(email, currentPassword);
+        try
+        {
+            await LoginAsync(email, currentPassword);
+        }
+        catch (ExternalAuthenticationException ex)
+            when (ex.Reason == ExternalAuthenticationFailureReason.InvalidCredentials)
+        {
+            throw new CurrentPasswordIncorrectException();
+        }
 
         try
         {

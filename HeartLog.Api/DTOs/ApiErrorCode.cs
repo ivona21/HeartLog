@@ -10,5 +10,6 @@ public enum ApiErrorCode
     EmailAlreadyExists,
     UsernameAlreadyExists,
     InvalidRequest,
-    Unauthorized
+    Unauthorized,
+    InvalidCurrentPassword
 }
