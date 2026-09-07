@@ -222,7 +222,7 @@ Current expected behavior:
 - Missing, invalid, or expired refresh cookie: `401 Unauthorized`.
 - Valid Supabase token but no linked local HeartLog user: `401 Unauthorized`.
 - Bad login credentials: `401 Unauthorized`.
-- Bad current password during password change: `401 Unauthorized`.
+- Bad current password during password change: `401 Unauthorized` with `invalidCurrentPassword`.
 - Registration email already exists locally: `400 Bad Request`.
 - Temporary auth provider issue: controlled authentication error response.
 

@@ -13,6 +13,7 @@ public static class ApiErrorMessages
     public const string UsernameAlreadyExists = "Username is taken.";
     public const string InvalidRequest = "The request could not be processed.";
     public const string Unauthorized = "Unauthorized.";
+    public const string InvalidCurrentPassword = "Current password is incorrect.";
 
     public static string GetDefaultMessage(ApiErrorCode code)
     {
@@ -26,6 +27,7 @@ public static class ApiErrorMessages
             ApiErrorCode.UsernameAlreadyExists => UsernameAlreadyExists,
             ApiErrorCode.InvalidRequest => InvalidRequest,
             ApiErrorCode.Unauthorized => Unauthorized,
+            ApiErrorCode.InvalidCurrentPassword => InvalidCurrentPassword,
             _ => UnexpectedError
         };
     }

@@ -866,7 +866,8 @@
                     "emailAlreadyExists",
                     "usernameAlreadyExists",
                     "invalidRequest",
-                    "unauthorized"
+                    "unauthorized",
+                    "invalidCurrentPassword"
                 ],
                 "type": "string"
             },
