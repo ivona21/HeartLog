@@ -124,6 +124,25 @@ public class AuthController : ControllerBase
             Message: "If an account exists for this email, a password reset link has been sent."));
     }
 
+    [Authorize]
+    [HttpPost("forgot-password/me")]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    [SwaggerOperation(
+        OperationId = "Auth_ForgotPasswordForCurrentUser",
+        Description = "Sends a password reset email to the currently authenticated user's email address.")]
+    public async Task<ActionResult<ApiResponse>> ForgotPasswordForCurrentUser()
+    {
+        var currentUser = await _currentUserService.GetCurrentUserAsync(User);
+
+        await _userService.SendPasswordResetAsync(currentUser.Email);
+
+        return Ok(new ApiResponse(
+            Success: true,
+            Message: "If an account exists for this email, a password reset link has been sent."));
+    }
+
     [AllowAnonymous]
     [HttpGet("reset-password/confirm")]
     [ProducesResponseType(StatusCodes.Status302Found)]
