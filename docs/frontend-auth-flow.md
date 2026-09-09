@@ -171,6 +171,25 @@ Important details:
 - The frontend must not send an email address for this flow.
 - The email link uses the same reset confirmation and password update flow as the unauthenticated forgot-password endpoint.
 
+## Reset Password
+
+```http
+POST /api/auth/reset-password
+Content-Type: application/json
+
+{
+  "password": "NewPass123!"
+}
+```
+
+Important details:
+
+- This endpoint is only for forgot-password/recovery flows.
+- Frontend requests must include credentials so the browser sends the `heartlog_password_reset_token` cookie.
+- After the password reset succeeds, the backend signs out all Supabase sessions for the recovered user.
+- The backend also clears HeartLog's password reset cookie and normal refresh-token cookie in the current browser.
+- The frontend should clear any locally stored access token and app auth state after a successful recovery reset.
+
 ## Change Password
 
 ```http

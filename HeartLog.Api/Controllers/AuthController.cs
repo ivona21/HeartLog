@@ -190,7 +190,7 @@ public class AuthController : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     [SwaggerOperation(
         OperationId = "Auth_ResetPassword",
-        Description = "Updates the Supabase password using the short-lived HTTP-only recovery cookie. Frontend requests must include credentials.")]
+        Description = "Updates the Supabase password using the short-lived HTTP-only recovery cookie, signs out the recovered user's sessions, and clears HeartLog auth cookies. Frontend requests must include credentials.")]
     public async Task<ActionResult<ApiResponse>> ResetPassword([FromBody] ResetPasswordRequestDto request)
     {
         if (!Request.Cookies.TryGetValue(PasswordResetCookie.Name, out var recoveryAccessToken)
@@ -204,6 +204,10 @@ public class AuthController : ControllerBase
         Response.Cookies.Delete(
             PasswordResetCookie.Name,
             PasswordResetCookie.CreateDeleteOptions(_environment));
+
+        Response.Cookies.Delete(
+            RefreshTokenCookie.Name,
+            RefreshTokenCookie.CreateDeleteOptions(_environment));
 
         return Ok(new ApiResponse(
             Success: true,
