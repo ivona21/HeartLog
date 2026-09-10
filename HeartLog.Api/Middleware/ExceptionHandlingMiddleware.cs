@@ -46,6 +46,7 @@ public class ExceptionHandlingMiddleware
     {
         return exception is ExistingEmailException
             or ExistingUsernameException
+            or CurrentPasswordIncorrectException
             or ExternalAuthException
             or ExternalAuthenticationException
             or InvalidEmotionEntryException
@@ -84,6 +85,10 @@ public class ExceptionHandlingMiddleware
                 HttpStatusCode.BadRequest,
                 ApiErrorCode.InvalidRequest,
                 invalidEmotionEntryException.Message),
+            CurrentPasswordIncorrectException => new ApiErrorDescriptor(
+                HttpStatusCode.Unauthorized,
+                ApiErrorCode.InvalidCurrentPassword,
+                ApiErrorMessages.InvalidCurrentPassword),
             UnauthorizedAccessException => new ApiErrorDescriptor(
                 HttpStatusCode.Unauthorized,
                 ApiErrorCode.Unauthorized,

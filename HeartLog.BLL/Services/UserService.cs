@@ -53,6 +53,11 @@ public class UserService: IUserService
         await _externalAuthService.ResetPasswordAsync(recoveryAccessToken, newPassword);
     }
 
+    public async Task ChangePasswordAsync(string email, string accessToken, string currentPassword, string newPassword)
+    {
+        await _externalAuthService.ChangePasswordAsync(email, accessToken, currentPassword, newPassword);
+    }
+
     public async Task<ExternalAuthSession> LoginUserAsync(string email, string password)
     {
         var session = await _externalAuthService.LoginAsync(email, password);

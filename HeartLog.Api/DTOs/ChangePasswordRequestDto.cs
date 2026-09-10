@@ -3,9 +3,12 @@ using HeartLog.Api.Validation;
 
 namespace HeartLog.Api.DTOs;
 
-public class ResetPasswordRequestDto
+public class ChangePasswordRequestDto
 {
     [Required]
+    public string CurrentPassword { get; set; } = string.Empty;
+
+    [Required]
     [PasswordComplexity(MinimumLength = ValidationConstants.PasswordMinimumLength)]
-    public string Password { get; set; } = string.Empty;
+    public string NewPassword { get; set; } = string.Empty;
 }

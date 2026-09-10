@@ -11,6 +11,7 @@ public interface IExternalAuthService
     Task SendPasswordResetAsync(string email);
     Task<ExternalAuthSession> ConfirmPasswordResetAsync(string tokenHash, string type);
     Task ResetPasswordAsync(string recoveryAccessToken, string newPassword);
+    Task ChangePasswordAsync(string email, string accessToken, string currentPassword, string newPassword);
     Task<ExternalAuthSession> LoginAsync(string email, string password);
     Task<ExternalAuthSession> RefreshAsync(string refreshToken);
 }

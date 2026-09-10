@@ -124,6 +124,25 @@ public class AuthController : ControllerBase
             Message: "If an account exists for this email, a password reset link has been sent."));
     }
 
+    [Authorize]
+    [HttpPost("forgot-password/me")]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    [SwaggerOperation(
+        OperationId = "Auth_ForgotPasswordForCurrentUser",
+        Description = "Sends a password reset email to the currently authenticated user's email address.")]
+    public async Task<ActionResult<ApiResponse>> ForgotPasswordForCurrentUser()
+    {
+        var currentUser = await _currentUserService.GetCurrentUserAsync(User);
+
+        await _userService.SendPasswordResetAsync(currentUser.Email);
+
+        return Ok(new ApiResponse(
+            Success: true,
+            Message: "If an account exists for this email, a password reset link has been sent."));
+    }
+
     [AllowAnonymous]
     [HttpGet("reset-password/confirm")]
     [ProducesResponseType(StatusCodes.Status302Found)]
@@ -171,7 +190,7 @@ public class AuthController : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     [SwaggerOperation(
         OperationId = "Auth_ResetPassword",
-        Description = "Updates the Supabase password using the short-lived HTTP-only recovery cookie. Frontend requests must include credentials.")]
+        Description = "Updates the Supabase password using the short-lived HTTP-only recovery cookie, signs out the recovered user's sessions, and clears HeartLog auth cookies. Frontend requests must include credentials.")]
     public async Task<ActionResult<ApiResponse>> ResetPassword([FromBody] ResetPasswordRequestDto request)
     {
         if (!Request.Cookies.TryGetValue(PasswordResetCookie.Name, out var recoveryAccessToken)
@@ -186,9 +205,40 @@ public class AuthController : ControllerBase
             PasswordResetCookie.Name,
             PasswordResetCookie.CreateDeleteOptions(_environment));
 
+        Response.Cookies.Delete(
+            RefreshTokenCookie.Name,
+            RefreshTokenCookie.CreateDeleteOptions(_environment));
+
         return Ok(new ApiResponse(
             Success: true,
             Message: "Password reset successful."));
+    }
+
+    [Authorize]
+    [HttpPost("change-password")]
+    [Consumes("application/json")]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status503ServiceUnavailable)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    [SwaggerOperation(
+        OperationId = "Auth_ChangePassword",
+        Description = "Changes the current authenticated user's Supabase password after validating the current password.")]
+    public async Task<ActionResult<ApiResponse>> ChangePassword([FromBody] ChangePasswordRequestDto request)
+    {
+        var currentUser = await _currentUserService.GetCurrentUserAsync(User);
+        var accessToken = GetBearerAccessToken();
+
+        await _userService.ChangePasswordAsync(
+            currentUser.Email,
+            accessToken,
+            request.CurrentPassword,
+            request.NewPassword);
+
+        return Ok(new ApiResponse(
+            Success: true,
+            Message: "Password changed successfully."));
     }
     
     [AllowAnonymous]
@@ -308,6 +358,25 @@ public class AuthController : ControllerBase
             RefreshTokenCookie.Name,
             session.RefreshToken,
             RefreshTokenCookie.CreateOptions(_environment));
+    }
+
+    private string GetBearerAccessToken()
+    {
+        var authorization = Request.Headers["Authorization"].ToString();
+        const string bearerPrefix = "Bearer ";
+
+        if (!authorization.StartsWith(bearerPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new UnauthorizedAccessException("Invalid access token.");
+        }
+
+        var accessToken = authorization[bearerPrefix.Length..].Trim();
+        if (string.IsNullOrWhiteSpace(accessToken))
+        {
+            throw new UnauthorizedAccessException("Invalid access token.");
+        }
+
+        return accessToken;
     }
 
     private void SetPasswordResetCookie(ExternalAuthSession session)

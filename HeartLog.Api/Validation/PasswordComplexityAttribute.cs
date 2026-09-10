@@ -5,7 +5,7 @@ namespace HeartLog.Api.Validation;
 
 public class PasswordComplexityAttribute: ValidationAttribute
 {
-    public int MinimumLength { get; set; } = 8;
+    public int MinimumLength { get; set; } = ValidationConstants.PasswordMinimumLength;
     
     public override bool IsValid(object value)
     {

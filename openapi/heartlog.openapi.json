@@ -202,6 +202,52 @@
                 }
             }
         },
+        "/api/auth/forgot-password/me": {
+            "post": {
+                "tags": [
+                    "Auth"
+                ],
+                "description": "Sends a password reset email to the currently authenticated user's email address.",
+                "operationId": "Auth_ForgotPasswordForCurrentUser",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
         "/api/auth/reset-password/confirm": {
             "get": {
                 "tags": [
@@ -247,7 +293,7 @@
                 "tags": [
                     "Auth"
                 ],
-                "description": "Updates the Supabase password using the short-lived HTTP-only recovery cookie. Frontend requests must include credentials.",
+                "description": "Updates the Supabase password using the short-lived HTTP-only recovery cookie, signs out the recovered user's sessions, and clears HeartLog auth cookies. Frontend requests must include credentials.",
                 "operationId": "Auth_ResetPassword",
                 "requestBody": {
                     "content": {
@@ -310,6 +356,81 @@
                         }
                     }
                 }
+            }
+        },
+        "/api/auth/change-password": {
+            "post": {
+                "tags": [
+                    "Auth"
+                ],
+                "description": "Changes the current authenticated user's Supabase password after validating the current password.",
+                "operationId": "Auth_ChangePassword",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ChangePasswordRequestDto"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
             }
         },
         "/api/auth/login": {
@@ -791,7 +912,8 @@
                     "emailAlreadyExists",
                     "usernameAlreadyExists",
                     "invalidRequest",
-                    "unauthorized"
+                    "unauthorized",
+                    "invalidCurrentPassword"
                 ],
                 "type": "string"
             },
@@ -859,6 +981,24 @@
                     },
                     "data": {
                         "$ref": "#/components/schemas/AuthSessionResponseDto"
+                    }
+                },
+                "additionalProperties": false
+            },
+            "ChangePasswordRequestDto": {
+                "required": [
+                    "currentPassword",
+                    "newPassword"
+                ],
+                "type": "object",
+                "properties": {
+                    "currentPassword": {
+                        "minLength": 1,
+                        "type": "string"
+                    },
+                    "newPassword": {
+                        "minLength": 1,
+                        "type": "string"
                     }
                 },
                 "additionalProperties": false
