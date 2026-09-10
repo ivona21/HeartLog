@@ -148,6 +148,29 @@ Success response:
 
 Use `/api/auth/me` for local HeartLog user state. Do not decode tokens in the frontend to infer app user identity.
 
+## Forgot Password For Current User
+
+```http
+POST /api/auth/forgot-password/me
+Authorization: Bearer ACCESS_TOKEN
+```
+
+Expected response:
+
+```json
+{
+  "success": true,
+  "message": "If an account exists for this email, a password reset link has been sent."
+}
+```
+
+Important details:
+
+- This endpoint is only for authenticated users.
+- The backend resolves the current HeartLog user from the bearer token and sends the reset email to that user's email address.
+- The frontend must not send an email address for this flow.
+- The email link uses the same reset confirmation and password update flow as the unauthenticated forgot-password endpoint.
+
 ## Change Password
 
 ```http
