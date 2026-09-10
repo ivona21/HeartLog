@@ -293,7 +293,7 @@
                 "tags": [
                     "Auth"
                 ],
-                "description": "Updates the Supabase password using the short-lived HTTP-only recovery cookie. Frontend requests must include credentials.",
+                "description": "Updates the Supabase password using the short-lived HTTP-only recovery cookie, signs out the recovered user's sessions, and clears HeartLog auth cookies. Frontend requests must include credentials.",
                 "operationId": "Auth_ResetPassword",
                 "requestBody": {
                     "content": {

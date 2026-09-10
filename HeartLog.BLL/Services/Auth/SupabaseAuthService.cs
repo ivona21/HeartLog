@@ -20,6 +20,7 @@ public class SupabaseAuthService : IExternalAuthService
     private const string AuthUserPath = "/auth/v1/user";
     private const string AuthRefreshTokenPath = "/auth/v1/token?grant_type=refresh_token";
     private const string AuthLogoutOtherSessionsPath = "/auth/v1/logout?scope=others";
+    private const string AuthLogoutAllSessionsPath = "/auth/v1/logout?scope=global";
 
     private readonly SupabaseSettings _settings;
     private readonly IHttpClientFactory _httpClientFactory;
@@ -287,6 +288,8 @@ public class SupabaseAuthService : IExternalAuthService
         {
             throw new ExternalAuthException("Supabase password reset failed.", ex);
         }
+
+        await SignOutAllSessionsAsync(recoveryAccessToken);
     }
 
     public async Task ChangePasswordAsync(
@@ -358,12 +361,31 @@ public class SupabaseAuthService : IExternalAuthService
 
     private async Task SignOutOtherSessionsAsync(string accessToken)
     {
+        await SignOutSessionsAsync(
+            accessToken,
+            AuthLogoutOtherSessionsPath,
+            "other-session");
+    }
+
+    private async Task SignOutAllSessionsAsync(string accessToken)
+    {
+        await SignOutSessionsAsync(
+            accessToken,
+            AuthLogoutAllSessionsPath,
+            "global session");
+    }
+
+    private async Task SignOutSessionsAsync(
+        string accessToken,
+        string logoutPath,
+        string operation)
+    {
         try
         {
             var httpClient = _httpClientFactory.CreateClient();
             using var request = new HttpRequestMessage(
                 HttpMethod.Post,
-                $"{_settings.ProjectUrl.TrimEnd('/')}{AuthLogoutOtherSessionsPath}");
+                $"{_settings.ProjectUrl.TrimEnd('/')}{logoutPath}");
 
             request.Headers.Add("apikey", _settings.PublishableKey);
             request.Headers.Add("Authorization", $"Bearer {accessToken}");
@@ -371,7 +393,7 @@ public class SupabaseAuthService : IExternalAuthService
             using var response = await httpClient.SendAsync(request);
             if (!response.IsSuccessStatusCode)
             {
-                throw new ExternalAuthException($"Supabase other-session sign-out failed with status code {(int)response.StatusCode}.");
+                throw new ExternalAuthException($"Supabase {operation} sign-out failed with status code {(int)response.StatusCode}.");
             }
         }
         catch (ExternalAuthException)
@@ -380,7 +402,7 @@ public class SupabaseAuthService : IExternalAuthService
         }
         catch (Exception ex)
         {
-            throw new ExternalAuthException("Supabase other-session sign-out failed.", ex);
+            throw new ExternalAuthException($"Supabase {operation} sign-out failed.", ex);
         }
     }
 
