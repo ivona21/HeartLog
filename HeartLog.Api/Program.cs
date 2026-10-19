@@ -236,7 +236,8 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapGet("/ping", () => Results.Ok("pong"))
+app.MapGet("/health", () => Results.Ok("healthy"))
+    .AllowAnonymous()
     .ExcludeFromDescription();
 app.MapGet("/", () => "HeartLog API is running 🚀")
     .ExcludeFromDescription();
