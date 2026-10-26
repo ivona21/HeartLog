@@ -141,6 +141,25 @@ public class EmotionEntryService : IEmotionEntryService
         };
     }
 
+    public async Task DeleteEmotionEntryAsync(
+        Guid userId,
+        Guid entryId,
+        CancellationToken cancellationToken = default)
+    {
+        if (userId == Guid.Empty)
+        {
+            throw new UnauthorizedAccessException("Authenticated user id was not found.");
+        }
+
+        var deleted = await _emotionEntriesRepository.DeleteByIdAndUserIdAsync(
+            entryId, userId, cancellationToken);
+
+        if (!deleted)
+        {
+            throw new EmotionEntryNotFoundException();
+        }
+    }
+
     public async Task<EmotionEntriesSummary> GetSummaryAsync(
         Guid userId,
         CancellationToken cancellationToken = default)
