@@ -14,6 +14,16 @@ public class EmotionEntriesRepository : IEmotionEntriesRepository
         _context = context;
     }
 
+    public async Task<bool> DeleteByIdAndUserIdAsync(Guid entryId, Guid userId, CancellationToken cancellationToken = default)
+    {
+        // Execute immediately; the database cascades deletion to the entry's selected emotions.
+        var deletedCount = await _context.EmotionEntries
+            .Where(entry => entry.Id == entryId && entry.UserId == userId)
+            .ExecuteDeleteAsync(cancellationToken);
+
+        return deletedCount > 0;
+    }
+
     public async Task AddAsync(EmotionEntry emotionEntry, CancellationToken cancellationToken = default)
     {
         await _context.EmotionEntries.AddAsync(emotionEntry, cancellationToken);

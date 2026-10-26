@@ -50,6 +50,7 @@ public class ExceptionHandlingMiddleware
             or ExternalAuthException
             or ExternalAuthenticationException
             or InvalidEmotionEntryException
+            or EmotionEntryNotFoundException
             or UnauthorizedAccessException;
     }
 
@@ -72,6 +73,10 @@ public class ExceptionHandlingMiddleware
     {
         return exception switch
         {
+            EmotionEntryNotFoundException => new ApiErrorDescriptor(
+                HttpStatusCode.NotFound,
+                ApiErrorCode.EmotionEntryNotFound,
+                ApiErrorMessages.EmotionEntryNotFound),
             ExternalAuthenticationException authException => MapExternalAuthenticationException(authException),
             ExistingEmailException => new ApiErrorDescriptor(
                 HttpStatusCode.BadRequest,
