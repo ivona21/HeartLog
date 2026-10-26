@@ -11,5 +11,6 @@ public enum ApiErrorCode
     UsernameAlreadyExists,
     InvalidRequest,
     Unauthorized,
-    InvalidCurrentPassword
+    InvalidCurrentPassword,
+    EmotionEntryNotFound
 }

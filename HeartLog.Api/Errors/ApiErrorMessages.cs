@@ -4,6 +4,7 @@ namespace HeartLog.Api.Errors;
 
 public static class ApiErrorMessages
 {
+    public const string EmotionEntryNotFound = "Emotion entry was not found.";
     public const string InvalidCredentials = "Invalid email or password.";
     public const string EmailNotConfirmed = "Please confirm your email before logging in.";
     public const string AuthenticationUnavailable = "Unable to complete authentication. Please try again.";
@@ -19,6 +20,7 @@ public static class ApiErrorMessages
     {
         return code switch
         {
+            ApiErrorCode.EmotionEntryNotFound => EmotionEntryNotFound,
             ApiErrorCode.InvalidCredentials => InvalidCredentials,
             ApiErrorCode.EmailNotConfirmed => EmailNotConfirmed,
             ApiErrorCode.AuthenticationUnavailable => AuthenticationUnavailable,

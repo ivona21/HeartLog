@@ -66,6 +66,20 @@ public class EmotionEntriesController : ControllerBase
             Data: result.ToDto()));
     }
 
+    [HttpDelete("{entryId:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    [SwaggerOperation(OperationId = "EmotionEntries_Delete")]
+    public async Task<IActionResult> DeleteEmotionEntry(Guid entryId, CancellationToken cancellationToken)
+    {
+        var user = await _currentUserService.GetCurrentUserAsync(User, cancellationToken);
+        await _emotionEntryService.DeleteEmotionEntryAsync(user.Id, entryId, cancellationToken);
+
+        return NoContent();
+    }
+
     [HttpGet("summary")]
     [ProducesResponseType(typeof(ApiResponse<EmotionEntriesSummaryResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]

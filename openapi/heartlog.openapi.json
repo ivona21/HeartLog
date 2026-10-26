@@ -898,6 +898,65 @@
                     }
                 }
             }
+        },
+        "/api/emotion-entries/{entryId}": {
+            "delete": {
+                "tags": [
+                    "EmotionEntries"
+                ],
+                "operationId": "EmotionEntries_Delete",
+                "parameters": [
+                    {
+                        "name": "entryId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
         }
     },
     "components": {
@@ -913,7 +972,8 @@
                     "usernameAlreadyExists",
                     "invalidRequest",
                     "unauthorized",
-                    "invalidCurrentPassword"
+                    "invalidCurrentPassword",
+                    "emotionEntryNotFound"
                 ],
                 "type": "string"
             },
