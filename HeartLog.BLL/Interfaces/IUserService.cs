@@ -5,6 +5,8 @@ namespace HeartLog.BLL.Interfaces;
 
 public interface IUserService
 {
+    Task RequestAccountDeletionAsync(Guid providerId, string currentPassword, CancellationToken cancellationToken = default);
+    Task ProcessAccountDeletionsAsync(CancellationToken cancellationToken);
     Task<ExternalAuthRegistrationResult> RegisterUserAsync(User user, string password);
     Task<ExternalAuthEmailConfirmationResult> ConfirmEmailAsync(string tokenHash, string type);
     Task ResendConfirmationAsync(string email);

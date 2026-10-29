@@ -10,6 +10,8 @@ public class ApplicationDbContext: DbContext
         
     }
     
+    public DbSet<AccountDeletion> AccountDeletions { get; set; } = null!;
+
     public DbSet<User> Users { get; set; } = null!;
     
     public DbSet<Item> Items { get; set; } = null!;
@@ -25,6 +27,7 @@ public class ApplicationDbContext: DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+        modelBuilder.ApplyConfiguration(new AccountDeletionConfiguration());
         modelBuilder.ApplyConfiguration(new UserConfiguration());
         modelBuilder.ApplyConfiguration(new EmotionConfiguration());
         modelBuilder.ApplyConfiguration(new EmotionTranslationConfiguration());

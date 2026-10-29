@@ -22,9 +22,34 @@ namespace HeartLog.DAL.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("HeartLog.DAL.Models.AccountDeletion", b =>
+                {
+                    b.Property<Guid>("SupabaseUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("NextAttemptAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("RequestedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("SupabaseUserId");
+
+                    b.HasIndex("NextAttemptAt");
+
+                    b.ToTable("AccountDeletions");
+                });
+
             modelBuilder.Entity("HeartLog.DAL.Models.Emotion", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
                     b.Property<string>("Color")
@@ -61,7 +86,6 @@ namespace HeartLog.DAL.Migrations
             modelBuilder.Entity("HeartLog.DAL.Models.EmotionEntry", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedNever()
                         .HasColumnType("uuid");
 
                     b.Property<string>("Comment")
@@ -83,13 +107,12 @@ namespace HeartLog.DAL.Migrations
 
                     b.HasIndex("UserId", "OccurredAt");
 
-                    b.ToTable("EmotionEntries");
+                    b.ToTable("EmotionEntries", (string)null);
                 });
 
             modelBuilder.Entity("HeartLog.DAL.Models.EmotionEntryEmotion", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedNever()
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
@@ -110,17 +133,18 @@ namespace HeartLog.DAL.Migrations
                         .IsUnique()
                         .HasFilter("\"IsPrimary\" = true");
 
+                    b.HasIndex("EmotionId");
+
                     b.HasIndex("EmotionEntryId", "EmotionId")
                         .IsUnique();
 
-                    b.HasIndex("EmotionId");
-
-                    b.ToTable("EmotionEntryEmotions");
+                    b.ToTable("EmotionEntryEmotions", (string)null);
                 });
 
             modelBuilder.Entity("HeartLog.DAL.Models.EmotionTranslation", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("EmotionId")
@@ -164,10 +188,12 @@ namespace HeartLog.DAL.Migrations
             modelBuilder.Entity("HeartLog.DAL.Models.User", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedNever()
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DeletionRequestedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Email")
@@ -219,16 +245,16 @@ namespace HeartLog.DAL.Migrations
 
             modelBuilder.Entity("HeartLog.DAL.Models.EmotionEntryEmotion", b =>
                 {
-                    b.HasOne("HeartLog.DAL.Models.Emotion", "Emotion")
-                        .WithMany()
-                        .HasForeignKey("EmotionId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("HeartLog.DAL.Models.EmotionEntry", "EmotionEntry")
                         .WithMany("EmotionEntryEmotions")
                         .HasForeignKey("EmotionEntryId")
                         .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("HeartLog.DAL.Models.Emotion", "Emotion")
+                        .WithMany()
+                        .HasForeignKey("EmotionId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Emotion");
