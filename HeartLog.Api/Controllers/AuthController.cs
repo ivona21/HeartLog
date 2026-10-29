@@ -310,6 +310,29 @@ public class AuthController : ControllerBase
     }
 
     [Authorize]
+    [HttpDelete("me")]
+    [Consumes("application/json")]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status202Accepted)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status503ServiceUnavailable)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    [SwaggerOperation(OperationId = "Auth_DeleteCurrentUser",
+        Description = "Verifies the current password and durably requests permanent account and emotion-data deletion. Access ends immediately; cleanup retries automatically. Include credentials to clear auth cookies.")]
+    public async Task<ActionResult<ApiResponse>> DeleteCurrentUser(
+        [FromBody, System.ComponentModel.DataAnnotations.Required] DeleteAccountRequestDto request, CancellationToken cancellationToken)
+    {
+        var providerId = User.FindFirst("sub")?.Value;
+        if (!Guid.TryParse(providerId, out var id))
+            throw new UnauthorizedAccessException("Authenticated user id was not found.");
+        // The service resolves the local user under its lock; repeated pending requests are accepted.
+        await _userService.RequestAccountDeletionAsync(id, request.CurrentPassword, cancellationToken);
+        Response.Cookies.Delete(RefreshTokenCookie.Name, RefreshTokenCookie.CreateDeleteOptions(_environment));
+        Response.Cookies.Delete(PasswordResetCookie.Name, PasswordResetCookie.CreateDeleteOptions(_environment));
+        return Accepted(new ApiResponse(Success: true, Message: "Account deletion requested."));
+    }
+
+    [Authorize]
     [HttpGet("me")]
     [ProducesResponseType(typeof(ApiResponse<UserMeResponseDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]

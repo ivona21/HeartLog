@@ -4,6 +4,8 @@ public class User
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     
+    public DateTime? DeletionRequestedAt { get; set; }
+
     public string Email { get; set; } = string.Empty;
 
     public Guid? SupabaseUserId { get; set; }
