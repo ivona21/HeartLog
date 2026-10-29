@@ -47,12 +47,4 @@ Provider behavior: [Supabase user management](https://supabase.com/docs/guides/a
 
 ## Verification
 
-Run the dependency-free regression executable:
-
-```bash
-dotnet run --project tests/HeartLog.AccountDeletionChecks
-```
-
-It checks password and identity verification, duplicate acceptance, pending access/login/refresh rejection, retry orchestration, stale-login rejection, admin HTTP headers/status handling, EF cascade metadata, migration snapshot consistency and generated SQL, cookie clearing, and the authenticated OpenAPI contract. Provider requests are simulated. It does not contact Supabase or apply migrations to an application database.
-
 A PostgreSQL/Supabase staging test is still required before release to verify applied cascades, transaction rollback, worker restart recovery, concurrent provisioning/deletion, and actual provider credential permissions.
