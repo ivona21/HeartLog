@@ -76,7 +76,7 @@ The existing migration-at-startup mechanism creates the table. No new API endpoi
 - Temporary failures, including network timeouts, rate limits, and provider credential failures, retry with exponential backoff up to one hour. A longer provider `Retry-After` is respected within the retention window. HTTP 400/422 and unknown template versions are treated as permanent rejections and removed with a warning. Shutdown leaves the lease recoverable by another worker after expiry.
 - Notifications store only a random message ID, recipient address, template version, timestamps, attempts, and lease metadata. They have no foreign key or retained link to the deleted user. Recipient addresses and provider response bodies are not logged by the delivery implementation.
 - Unsent rows expire seven days after deletion and are purged on the next worker cycle, even when sending is disabled. Cleanup resumes on restart if the backend was stopped; a continuously running worker is required for timely expiry. Successfully sent or permanently rejected rows are removed immediately. Provider email logs and database backups have their own retention policies.
-- A stable message ID is sent as the provider idempotency key. Resend retains these keys for 24 hours. A crash after acceptance but before row deletion normally retries safely within that window; longer outages can produce a duplicate. Keep template version `account-deleted-v1` content and sender configuration stable while retrying pending messages because the provider rejects reuse of a key with a different payload.
+- A stable message ID is sent as the provider idempotency key. Resend retains these keys for 24 hours. A crash after acceptance but before row deletion normally retries safely within that window; longer outages can produce a duplicate. New messages use template version `account-deleted-v2` with the custom responsive HTML and matching plain text. Pending `account-deleted-v1` messages retain their original content so retries preserve the provider payload. Keep sender configuration stable while retrying pending messages because the provider rejects reuse of a key with a different payload.
 
 ### Email content
 
@@ -84,7 +84,7 @@ Subject: **Your HeartLog account has been deleted**
 
 > Your HeartLog account and emotion entries have been permanently deleted from our active systems.
 >
-> You don’t need to take any further action. If you choose to return, you can register again and start fresh.
+> You don’t need to take any further action. If you ever want to come back, you’re welcome to start fresh with a new account.
 >
 > Thank you for using HeartLog.
 
