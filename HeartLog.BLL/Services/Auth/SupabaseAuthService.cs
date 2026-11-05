@@ -33,6 +33,49 @@ public class SupabaseAuthService : IExternalAuthService
         _httpClientFactory = httpClientFactory;
     }
 
+    public async Task DeleteUserAsync(Guid providerId, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(_settings.SecretKey))
+            throw new ExternalAuthException("Supabase admin credentials are missing.");
+
+        using var request = new HttpRequestMessage(HttpMethod.Delete,
+            $"{_settings.ProjectUrl.TrimEnd('/')}/auth/v1/admin/users/{providerId}");
+        request.Headers.Add("apikey", _settings.SecretKey);
+        // Supabase secret keys are API keys, not user JWTs.
+        if (_settings.SecretKey.StartsWith("eyJ", StringComparison.Ordinal))
+            request.Headers.TryAddWithoutValidation("Authorization", $"Bearer {_settings.SecretKey}");
+        try
+        {
+            using var response = await _httpClientFactory.CreateClient().SendAsync(request, cancellationToken);
+            if (!response.IsSuccessStatusCode && response.StatusCode != HttpStatusCode.NotFound)
+                throw new ExternalAuthException($"Supabase account deletion failed with status {(int)response.StatusCode}.");
+        }
+        catch (HttpRequestException ex)
+        {
+            throw new ExternalAuthException("Supabase account deletion unavailable.", ex);
+        }
+    }
+
+    public async Task ValidateSessionAsync(string accessToken, CancellationToken cancellationToken = default)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get,
+            $"{_settings.ProjectUrl.TrimEnd('/')}{AuthUserPath}");
+        request.Headers.Add("apikey", _settings.PublishableKey);
+        request.Headers.TryAddWithoutValidation("Authorization", $"Bearer {accessToken}");
+        try
+        {
+            using var response = await _httpClientFactory.CreateClient().SendAsync(request, cancellationToken);
+            if (response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden or HttpStatusCode.NotFound)
+                throw new UnauthorizedAccessException("Authenticated user could not be resolved.");
+            if (!response.IsSuccessStatusCode)
+                throw new ExternalAuthException("Unable to validate authentication provider user.");
+        }
+        catch (HttpRequestException ex)
+        {
+            throw new ExternalAuthException("Authentication provider unavailable.", ex);
+        }
+    }
+
     public async Task TestConnectionAsync()
     {
         await CreateClientAsync();

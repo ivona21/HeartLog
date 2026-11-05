@@ -68,6 +68,18 @@ builder.Services.AddControllers()
         };
     });
 builder.Services.AddHttpClient();
+builder.Services.AddOptions<HeartLog.BLL.Models.Email.EmailSettings>()
+    .Bind(builder.Configuration.GetSection("Email"))
+    .Validate(s => !s.Enabled || (!string.IsNullOrWhiteSpace(s.ApiKey)
+        && System.Net.Mail.MailAddress.TryCreate(s.FromAddress, out _)),
+        "Enabled email delivery requires Email:ApiKey and a valid Email:FromAddress.")
+    .ValidateOnStart();
+builder.Services.AddHttpClient<IEmailService, HeartLog.BLL.Services.Email.ResendEmailService>(client =>
+    client.Timeout = TimeSpan.FromSeconds(30));
+builder.Services.AddScoped<IEmailOutboxRepository, EmailOutboxRepository>();
+builder.Services.AddScoped<IEmailOutboxService, HeartLog.BLL.Services.Email.EmailOutboxService>();
+builder.Services.AddHostedService<HeartLog.Api.Services.EmailOutboxWorker>();
+builder.Services.AddHostedService<HeartLog.Api.Services.AccountDeletionWorker>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<IItemService, ItemService>();
@@ -134,6 +146,23 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
         options.Events = new JwtBearerEvents
         {
+            OnTokenValidated = async context =>
+            {
+                try
+                {
+                    await context.HttpContext.RequestServices.GetRequiredService<ICurrentUserService>()
+                        .GetCurrentUserAsync(context.Principal!, context.HttpContext.RequestAborted);
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    // Allow a pending user's duplicate delete request to reach the idempotent service.
+                    var endpoint = context.HttpContext.GetEndpoint();
+                    var action = endpoint?.Metadata.GetMetadata<Microsoft.AspNetCore.Mvc.Controllers.ControllerActionDescriptor>();
+                    if (action?.ControllerTypeInfo.AsType() != typeof(HeartLog.Api.Controllers.AuthController)
+                        || action.ActionName != nameof(HeartLog.Api.Controllers.AuthController.DeleteCurrentUser))
+                        context.Fail("Authenticated user could not be resolved.");
+                }
+            },
             OnChallenge = async context =>
             {
                 if (context.Response.HasStarted)
@@ -200,7 +229,10 @@ builder.Services.AddCors(options =>
 // Add services
 builder.Services.AddAuthorization();
 
-builder.Services.Configure<SupabaseSettings>(builder.Configuration.GetSection("Supabase"));
+builder.Services.AddOptions<SupabaseSettings>()
+    .Bind(builder.Configuration.GetSection("Supabase"))
+    .Validate(s => !string.IsNullOrWhiteSpace(s.SecretKey), "Supabase admin SecretKey is required for account deletion.")
+    .ValidateOnStart();
 
 builder.WebHost.ConfigureKestrel(options =>
 {

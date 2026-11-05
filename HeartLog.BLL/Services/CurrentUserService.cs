@@ -30,7 +30,7 @@ public class CurrentUserService : ICurrentUserService
         }
 
         var user = await _userRepository.GetBySupabaseUserIdAsync(supabaseUserId);
-        if (user is null)
+        if (user is null || user.DeletionRequestedAt is not null)
         {
             _logger.LogInformation(
                 "Authenticated Supabase user could not be resolved locally: {SupabaseUserId}",

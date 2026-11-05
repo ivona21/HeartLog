@@ -310,3 +310,7 @@ Backend cookie expectations:
 - Deployed cookie uses `SameSite=None; Secure` so Vercel-to-Render cross-site requests can send it.
 - Backend CORS must allow the exact frontend origin and credentials for cross-origin browser clients.
 - Frontend must not manually read or write this cookie.
+
+## Account deletion
+
+See [account-deletion.md](account-deletion.md) for the authenticated deletion request, confirmation behavior, cookie handling, and required frontend cache cleanup.

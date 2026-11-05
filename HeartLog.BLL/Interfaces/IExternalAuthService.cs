@@ -4,6 +4,8 @@ namespace HeartLog.BLL.Interfaces;
 
 public interface IExternalAuthService
 {
+    Task DeleteUserAsync(Guid providerId, CancellationToken cancellationToken = default);
+    Task ValidateSessionAsync(string accessToken, CancellationToken cancellationToken = default);
     Task TestConnectionAsync();
     Task<ExternalAuthRegistrationResult> RegisterAsync(string email, string password);
     Task<ExternalAuthEmailConfirmationResult> ConfirmEmailAsync(string tokenHash, string type);
