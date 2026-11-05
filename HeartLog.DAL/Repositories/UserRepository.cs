@@ -51,8 +51,21 @@ public class UserRepository : IUserRepository
 
     public async Task CompleteDeletionAsync(AccountDeletion deletion, CancellationToken cancellationToken)
     {
+        // This method must run inside WithProviderLockAsync: notification and deletion commit together.
+        var recipient = await _context.Users
+            .Where(u => u.Id == deletion.UserId && u.SupabaseUserId == deletion.SupabaseUserId)
+            .Select(u => u.Email).SingleOrDefaultAsync(cancellationToken);
         await _context.Users.Where(u => u.Id == deletion.UserId && u.SupabaseUserId == deletion.SupabaseUserId)
             .ExecuteDeleteAsync(cancellationToken);
+        if (recipient is not null)
+        {
+            var now = DateTime.UtcNow;
+            _context.EmailOutbox.Add(new EmailOutboxMessage
+            {
+                Recipient = recipient, CreatedAt = now, NextAttemptAt = now,
+                ExpiresAt = now.AddDays(7)
+            });
+        }
         _context.AccountDeletions.Remove(deletion);
         await _context.SaveChangesAsync(cancellationToken);
     }

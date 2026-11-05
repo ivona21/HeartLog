@@ -68,6 +68,17 @@ builder.Services.AddControllers()
         };
     });
 builder.Services.AddHttpClient();
+builder.Services.AddOptions<HeartLog.BLL.Models.Email.EmailSettings>()
+    .Bind(builder.Configuration.GetSection("Email"))
+    .Validate(s => !s.Enabled || (!string.IsNullOrWhiteSpace(s.ApiKey)
+        && System.Net.Mail.MailAddress.TryCreate(s.FromAddress, out _)),
+        "Enabled email delivery requires Email:ApiKey and a valid Email:FromAddress.")
+    .ValidateOnStart();
+builder.Services.AddHttpClient<IEmailService, HeartLog.BLL.Services.Email.ResendEmailService>(client =>
+    client.Timeout = TimeSpan.FromSeconds(30));
+builder.Services.AddScoped<IEmailOutboxRepository, EmailOutboxRepository>();
+builder.Services.AddScoped<IEmailOutboxService, HeartLog.BLL.Services.Email.EmailOutboxService>();
+builder.Services.AddHostedService<HeartLog.Api.Services.EmailOutboxWorker>();
 builder.Services.AddHostedService<HeartLog.Api.Services.AccountDeletionWorker>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();

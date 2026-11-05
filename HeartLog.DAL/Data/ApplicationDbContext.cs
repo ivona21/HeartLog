@@ -10,6 +10,8 @@ public class ApplicationDbContext: DbContext
         
     }
     
+    public DbSet<EmailOutboxMessage> EmailOutbox { get; set; } = null!;
+
     public DbSet<AccountDeletion> AccountDeletions { get; set; } = null!;
 
     public DbSet<User> Users { get; set; } = null!;
@@ -28,6 +30,7 @@ public class ApplicationDbContext: DbContext
     {
         base.OnModelCreating(modelBuilder);
         modelBuilder.ApplyConfiguration(new AccountDeletionConfiguration());
+        modelBuilder.ApplyConfiguration(new EmailOutboxMessageConfiguration());
         modelBuilder.ApplyConfiguration(new UserConfiguration());
         modelBuilder.ApplyConfiguration(new EmotionConfiguration());
         modelBuilder.ApplyConfiguration(new EmotionTranslationConfiguration());
