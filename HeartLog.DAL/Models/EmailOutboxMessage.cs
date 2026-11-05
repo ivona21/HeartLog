@@ -2,7 +2,6 @@ namespace HeartLog.DAL.Models;
 
 public class EmailOutboxMessage
 {
-    public const string LegacyAccountDeletedTemplate = "account-deleted-v1";
     public const string AccountDeletedTemplate = "account-deleted-v2";
     public Guid Id { get; set; } = Guid.NewGuid();
     public string Recipient { get; set; } = string.Empty;

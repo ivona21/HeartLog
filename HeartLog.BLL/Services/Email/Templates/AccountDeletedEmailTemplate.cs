@@ -2,6 +2,8 @@ namespace HeartLog.BLL.Services.Email.Templates;
 
 internal static class AccountDeletedEmailTemplate
 {
+    public const string Subject = "Your HeartLog account has been deleted";
+
     public const string Text = "Your HeartLog account has been deleted\n\n"
         + "Your HeartLog account and emotion entries have been permanently deleted from our active systems.\n\n"
         + "You don’t need to take any further action. If you ever want to come back, you’re welcome to start fresh with a new account.\n\n"

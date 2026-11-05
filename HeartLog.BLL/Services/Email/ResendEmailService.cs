@@ -17,27 +17,18 @@ public class ResendEmailService(HttpClient httpClient, IOptions<EmailSettings> o
         var settings = options.Value;
         if (!settings.Enabled)
             throw new EmailDeliveryException("Email delivery is disabled.");
-        if (message.Template != EmailOutboxMessage.AccountDeletedTemplate
-            && message.Template != EmailOutboxMessage.LegacyAccountDeletedTemplate)
+        if (message.Template != EmailOutboxMessage.AccountDeletedTemplate)
             throw new EmailDeliveryException("Unknown email template.", permanent: true);
 
-        const string subject = "Your HeartLog account has been deleted";
-        const string legacyText = "Your HeartLog account and emotion entries have been permanently deleted from our active systems.\n\n"
-            + "You don’t need to take any further action. If you choose to return, you can register again and start fresh.\n\n"
-            + "Thank you for using HeartLog.";
-        const string legacyHtml = "<html><body><h1>Your HeartLog account has been deleted</h1>"
-            + "<p>Your HeartLog account and emotion entries have been permanently deleted from our active systems.</p>"
-            + "<p>You don’t need to take any further action. If you choose to return, you can register again and start fresh.</p>"
-            + "<p>Thank you for using HeartLog.</p></body></html>";
-        // Preserve the original payload for retries of messages queued before the redesign.
-        var legacy = message.Template == EmailOutboxMessage.LegacyAccountDeletedTemplate;
-        var text = legacy ? legacyText : AccountDeletedEmailTemplate.Text;
-        var html = legacy ? legacyHtml : AccountDeletedEmailTemplate.Html;
         using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.resend.com/emails")
         {
             Content = JsonContent.Create(new
             {
-                from = settings.FromAddress, to = new[] { message.Recipient }, subject, text, html
+                from = settings.FromAddress,
+                to = new[] { message.Recipient },
+                subject = AccountDeletedEmailTemplate.Subject,
+                text = AccountDeletedEmailTemplate.Text,
+                html = AccountDeletedEmailTemplate.Html
             })
         };
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", settings.ApiKey);
