@@ -7,6 +7,12 @@ namespace HeartLog.DAL.Repositories;
 
 public class EmailOutboxRepository(ApplicationDbContext context) : IEmailOutboxRepository
 {
+    public async Task AddAsync(EmailOutboxMessage message, CancellationToken cancellationToken)
+    {
+        await context.EmailOutbox.AddAsync(message, cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
+    }
+
     public Task<int> DeleteExpiredAsync(CancellationToken cancellationToken) =>
         context.EmailOutbox.Where(m => m.ExpiresAt <= DateTime.UtcNow)
             .ExecuteDeleteAsync(cancellationToken);
