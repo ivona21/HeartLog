@@ -10,20 +10,6 @@ namespace HeartLog.BLL.Services.Email;
 public class EmailOutboxService(IEmailOutboxRepository repository, IEmailService emailService,
     IOptions<EmailSettings> options, ILogger<EmailOutboxService> logger) : IEmailOutboxService
 {
-    public async Task<Guid> QueueAccountDeletionConfirmationAsync(string recipient, CancellationToken cancellationToken = default)
-    {
-        if (!options.Value.Enabled)
-            throw new EmailDeliveryException("Email delivery is disabled.");
-        var now = DateTime.UtcNow;
-        var message = new HeartLog.DAL.Models.EmailOutboxMessage
-        {
-            Recipient = recipient, CreatedAt = now, NextAttemptAt = now,
-            ExpiresAt = now.AddDays(7)
-        };
-        await repository.AddAsync(message, cancellationToken);
-        return message.Id;
-    }
-
     public async Task ProcessAsync(CancellationToken cancellationToken)
     {
         // Purge retained addresses even when sending is disabled.

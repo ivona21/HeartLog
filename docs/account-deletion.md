@@ -93,19 +93,3 @@ Both plain-text and HTML bodies are sent. The wording covers active account data
 Provider references: [sending emails](https://resend.com/docs/api-reference/emails/send-email), [idempotency keys](https://resend.com/docs/dashboard/emails/idempotency-keys).
 
 Before release, verify the sender configuration in staging, transaction rollback after outbox insertion, multi-instance claims, crash recovery, retry/expiry behavior, and actual provider acceptance. No real email was sent during implementation, and no test project was added to this repository.
-
-## Test email delivery without deleting an account
-
-Run the backend with `ASPNETCORE_ENVIRONMENT=Development`, a configured database with migrations applied, and the email settings above enabled. Then call this development-only diagnostic endpoint using an address you control:
-
-```bash
-curl -i -X POST http://localhost/api/dev/email/account-deletion \
-  -H 'Content-Type: application/json' \
-  -d '{ "email": "you@example.com" }'
-```
-
-Use the backend's HTTPS URL instead if HTTP is redirected. This diagnostic does not require a login. It is visible in Swagger under EmailDiagnostics and returns `404` outside Development. Missing/invalid email addresses return the existing `400` validation response. Disabled email delivery returns `503` without inserting a message.
-
-`202` returns `data.messageId` and means the message was persisted, not that it reached the inbox. The existing email worker normally picks it up within 15 seconds and uses the same Resend sender, credentials, account-deletion template, leases, and retries as a real completion email. It never calls account deletion or changes users or emotion entries. The email intentionally contains the real account-deletion confirmation wording, so only use a recipient expecting this test.
-
-Check the recipient mailbox and, for delivery failures, worker logs and the `EmailOutbox` row matching the returned message ID. The row disappears on provider acceptance, permanent rejection, or expiry; disappearance alone does not prove inbox delivery. Resend's delivery logs provide provider-side status. No actual email is sent merely by adding this endpoint.
