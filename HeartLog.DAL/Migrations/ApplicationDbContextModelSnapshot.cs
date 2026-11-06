@@ -210,23 +210,6 @@ namespace HeartLog.DAL.Migrations
                     b.ToTable("EmotionTranslations");
                 });
 
-            modelBuilder.Entity("HeartLog.DAL.Models.Item", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Items");
-                });
-
             modelBuilder.Entity("HeartLog.DAL.Models.User", b =>
                 {
                     b.Property<Guid>("Id")

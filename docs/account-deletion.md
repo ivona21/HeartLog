@@ -26,7 +26,7 @@ The migration adds `Users.DeletionRequestedAt` and `AccountDeletions`. The queue
 
 Password verification must return the same Supabase identity as the authenticated caller. A PostgreSQL transaction atomically marks the account and records the task. Once committed, request cancellation cannot discard the task.
 
-A hosted worker scans up to 20 due tasks every 15 seconds. Each task deletes the Supabase Auth user first, then deletes the matching local user and queue record and inserts a completion-email notification in the same database transaction. Existing foreign keys cascade from the user to emotion entries and their selected-emotion rows. Shared emotions, translations, and unrelated Items remain intact.
+A hosted worker scans up to 20 due tasks every 15 seconds. Each task deletes the Supabase Auth user first, then deletes the matching local user and queue record and inserts a completion-email notification in the same database transaction. Existing foreign keys cascade from the user to emotion entries and their selected-emotion rows. Shared emotions and translations remain intact.
 
 Provider failures persist retry metadata with exponential backoff, capped at one hour. Database failures roll back the local transaction, leaving the task available for the next poll. A provider account already absent (`404`) counts as successful deletion, allowing recovery after timeouts or a crash between provider and database cleanup. Shutdown cancellation leaves unfinished work durable.
 
