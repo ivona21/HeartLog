@@ -896,83 +896,6 @@
                 }
             }
         },
-        "/api/Items": {
-            "get": {
-                "tags": [
-                    "Items"
-                ],
-                "operationId": "Items_GetAll",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ItemDtoIEnumerableApiResponse"
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            "post": {
-                "tags": [
-                    "Items"
-                ],
-                "operationId": "Items_Save",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/ItemDto"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ItemDtoApiResponse"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
         "/api/emotion-entries/{entryId}": {
             "delete": {
                 "tags": [
@@ -1343,53 +1266,6 @@
                 },
                 "additionalProperties": false
             },
-            "ItemDto": {
-                "type": "object",
-                "properties": {
-                    "name": {
-                        "type": "string"
-                    },
-                    "id": {
-                        "type": "integer",
-                        "format": "int32"
-                    }
-                },
-                "additionalProperties": false
-            },
-            "ItemDtoApiResponse": {
-                "type": "object",
-                "properties": {
-                    "success": {
-                        "type": "boolean"
-                    },
-                    "message": {
-                        "type": "string"
-                    },
-                    "data": {
-                        "$ref": "#/components/schemas/ItemDto"
-                    }
-                },
-                "additionalProperties": false
-            },
-            "ItemDtoIEnumerableApiResponse": {
-                "type": "object",
-                "properties": {
-                    "success": {
-                        "type": "boolean"
-                    },
-                    "message": {
-                        "type": "string"
-                    },
-                    "data": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/ItemDto"
-                        },
-                        "nullable": true
-                    }
-                },
-                "additionalProperties": false
-            },
             "ResendConfirmationRequestDto": {
                 "required": [
                     "email"
@@ -1532,10 +1408,6 @@
         {
             "name": "Emotions",
             "description": "Emotion tree endpoints."
-        },
-        {
-            "name": "Items",
-            "description": "Item endpoints."
         }
     ]
 }
