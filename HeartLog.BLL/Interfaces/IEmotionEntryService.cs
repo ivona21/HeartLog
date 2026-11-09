@@ -16,6 +16,10 @@ public interface IEmotionEntryService
         DateTime? occurredAt,
         CancellationToken cancellationToken = default);
 
+    Task<EmotionEntryResult> UpdateEmotionEntryAsync(
+        Guid userId, Guid entryId, IReadOnlyList<string> emotionKeys, string primaryEmotionKey,
+        string? comment, DateTime? occurredAt, CancellationToken cancellationToken = default);
+
     Task DeleteEmotionEntryAsync(
         Guid userId,
         Guid entryId,

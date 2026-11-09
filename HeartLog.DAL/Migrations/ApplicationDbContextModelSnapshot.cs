@@ -136,6 +136,12 @@ namespace HeartLog.DAL.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("EncryptedEmotions")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("EncryptedNote")
+                        .HasColumnType("jsonb");
+
                     b.Property<DateTime>("OccurredAt")
                         .HasColumnType("timestamp with time zone");
 
