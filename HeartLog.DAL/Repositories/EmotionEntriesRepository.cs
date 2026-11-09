@@ -24,6 +24,12 @@ public class EmotionEntriesRepository : IEmotionEntriesRepository
         return deletedCount > 0;
     }
 
+    public Task<EmotionEntry?> GetByIdAndUserIdAsync(Guid entryId, Guid userId, CancellationToken cancellationToken = default)
+    {
+        return _context.EmotionEntries.Include(e => e.EmotionEntryEmotions)
+            .SingleOrDefaultAsync(e => e.Id == entryId && e.UserId == userId, cancellationToken);
+    }
+
     public async Task AddAsync(EmotionEntry emotionEntry, CancellationToken cancellationToken = default)
     {
         await _context.EmotionEntries.AddAsync(emotionEntry, cancellationToken);

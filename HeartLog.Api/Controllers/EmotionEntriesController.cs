@@ -66,6 +66,23 @@ public class EmotionEntriesController : ControllerBase
             Data: result.ToDto()));
     }
 
+    [HttpPut("{entryId:guid}")]
+    [Consumes("application/json")]
+    [ProducesResponseType(typeof(ApiResponse<EmotionEntryResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    [SwaggerOperation(OperationId = "EmotionEntries_Update")]
+    public async Task<ActionResult<ApiResponse<EmotionEntryResponse>>> UpdateEmotionEntry(
+        Guid entryId, [FromBody] CreateEmotionEntryRequest request, CancellationToken cancellationToken)
+    {
+        var user = await _currentUserService.GetCurrentUserAsync(User, cancellationToken);
+        var result = await _emotionEntryService.UpdateEmotionEntryAsync(user.Id, entryId,
+            request.EmotionKeys, request.PrimaryEmotionKey, request.Comment, request.OccurredAt, cancellationToken);
+        return Ok(new ApiResponse<EmotionEntryResponse>(true, "Emotion entry updated successfully", result.ToDto()));
+    }
+
     [HttpDelete("{entryId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]

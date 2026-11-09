@@ -7,6 +7,9 @@ public class EmotionEntry
     public Guid UserId { get; set; }
     public User User { get; set; } = null!;
 
+    public string? EncryptedNote { get; set; }
+    public string? EncryptedEmotions { get; set; }
+
     public string? Comment { get; set; }
     public DateTime OccurredAt { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
