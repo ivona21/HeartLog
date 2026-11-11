@@ -1,20 +1,82 @@
-# Frontend Auth Flow
+# Authentication and frontend integration
 
-This document describes the HeartLog auth contract for frontend clients.
+This is the maintained authentication guide. The generated
+[OpenAPI contract](../openapi/heartlog.openapi.json) describes request schemas and
+error responses; [account deletion](account-deletion.md) covers deletion and its
+background processing.
 
-## Auth Model
+## Identity and data ownership
 
-- Supabase is the identity provider.
-- The frontend talks to the HeartLog API, not directly to Supabase.
-- HeartLog stores local application user data in the `Users` table.
-- The backend links local users to Supabase users through `Users.SupabaseUserId`.
-- The frontend sends the HeartLog-issued/Supabase-backed access token to protected HeartLog API endpoints.
-- The frontend should not send a user id for normal "my data" requests.
-- The backend resolves the current local user from the access token `sub` claim.
+Supabase owns credentials, email confirmation, and access/refresh tokens. The
+frontend calls HeartLog's API. HeartLog stores application users and journal data,
+linking `Users.SupabaseUserId` to the Supabase identity.
 
-## Session Shape
+Registration creates a Supabase account without a HeartLog session or local user.
+After email confirmation, successful login creates or links the local user. Login
+first looks up the provider identity, then may link a matching email with no
+provider identity, or create a new local user. An email linked to a different
+provider identity is rejected. Pending account deletion blocks login, refresh,
+and protected access.
 
-`POST /api/auth/register`, `POST /api/auth/login`, and `POST /api/auth/refresh` return the same session shape:
+Protected requests use `Authorization: Bearer ACCESS_TOKEN`. The backend validates
+the token and resolves the local user from its `sub` claim. Clients must not send
+user IDs for ordinary user-owned operations or decode tokens to infer the local
+HeartLog identity; use `GET /api/auth/me`.
+
+## Registration and email confirmation
+
+### Register
+
+`POST /api/auth/register` accepts:
+
+```json
+{ "email": "user@example.com", "password": "StrongPass123!" }
+```
+
+The response is a pending-confirmation result:
+
+```json
+{
+  "success": true,
+  "message": "Registration successful. Please confirm your email before logging in.",
+  "data": { "email": "user@example.com" }
+}
+```
+
+There is no access token, refresh cookie, or local HeartLog user created by this
+request. Show a check-your-email screen. Duplicate-provider registration is handled
+with a generic registration response and a resend attempt rather than exposing
+whether the account already exists.
+
+### Confirm email
+
+The email link targets
+`GET /api/auth/confirm-email?token_hash=TOKEN_HASH&type=email`.
+The API verifies the token and responds with a `302` redirect to
+`{Frontend:BaseUrl}/email-confirmation?status=success`, `expired`, or `invalid`.
+Missing parameters are treated as invalid. The frontend should render the status
+and offer login or resend as appropriate. Confirmation does not create a local
+user or log the user in; it does not return a JSON session.
+
+### Resend confirmation
+
+`POST /api/auth/resend-confirmation` accepts `{ "email": "user@example.com" }`.
+It returns a generic success message:
+
+```json
+{
+  "success": true,
+  "message": "If the account is waiting for confirmation, a new confirmation email has been sent."
+}
+```
+
+Do not infer account existence or confirmation state from this response. The
+endpoint does not create local users, return tokens, or set cookies.
+
+## Login and session refresh
+
+`POST /api/auth/login` accepts the same email/password fields as registration.
+Confirmed login and `POST /api/auth/refresh` return this session shape:
 
 ```json
 {
@@ -22,117 +84,23 @@ This document describes the HeartLog auth contract for frontend clients.
   "message": "Login successful",
   "data": {
     "accessToken": "...",
-    "expiresAt": "2026-06-20T10:00:00Z",
+    "expiresAt": "2026-11-11T12:00:00Z",
     "email": "user@example.com"
   }
 }
 ```
 
-The response intentionally does not expose `supabaseUserId`.
+The refresh response message is `Session refreshed successfully`. `expiresAt` is
+nullable. Neither response exposes the refresh token or `supabaseUserId`.
+Login sets `heartlog_refresh_token` as an HttpOnly cookie. JavaScript stores only
+access-token session data and application state.
 
-Cookie-based refresh-token contract:
+Refresh takes no body and needs no bearer token. The browser sends the refresh
+cookie, the API exchanges it with Supabase, and the response renews the cookie and
+returns fresh access-token data. Refresh requires an existing local user; it does
+not provision one. A missing or rejected refresh cookie returns `401`.
 
-- `refreshToken` should not be returned in JSON.
-- The backend sets the refresh token in an HttpOnly cookie named `heartlog_refresh_token`.
-- JavaScript cannot read the refresh token.
-- Frontend stores only `data.accessToken`, `data.expiresAt`, and user/app state.
-
-If the frontend needs the local HeartLog user id, call `GET /api/auth/me`.
-
-## Register
-
-```http
-POST /api/auth/register
-Content-Type: application/json
-
-{
-  "email": "user@example.com",
-  "password": "StrongPass123!"
-}
-```
-
-Frontend behavior:
-
-- Store/use the returned session.
-- Use `data.accessToken` as the bearer token for protected API calls.
-- Do not expect `data.refreshToken`.
-- Include credentials on the request if frontend and API are cross-origin, so the browser accepts the refresh-token cookie.
-- Optionally call `GET /api/auth/me` immediately to load the local HeartLog user.
-
-## Login
-
-```http
-POST /api/auth/login
-Content-Type: application/json
-
-{
-  "email": "user@example.com",
-  "password": "StrongPass123!"
-}
-```
-
-Frontend behavior:
-
-- Store/use the returned session.
-- Use `data.accessToken` as the bearer token for protected API calls.
-- Do not expect `data.refreshToken`.
-- Include credentials on the request if frontend and API are cross-origin, so the browser accepts the refresh-token cookie.
-- Call `GET /api/auth/me` after login to load the local HeartLog user.
-- Bad credentials return `401`.
-
-## Refresh Session
-
-Backend endpoint:
-
-```http
-POST /api/auth/refresh
-```
-
-Expected response:
-
-```json
-{
-  "success": true,
-  "message": "Session refreshed successfully",
-  "data": {
-    "accessToken": "...",
-    "expiresAt": "2026-06-20T11:00:00Z",
-    "email": "user@example.com"
-  }
-}
-```
-
-Important details:
-
-- No bearer token is required for refresh, because the access token may already be expired.
-- The frontend sends no refresh token in the body.
-- The browser sends the `heartlog_refresh_token` cookie automatically when credentials are included.
-- The backend exchanges the refresh token from the cookie with Supabase and returns a fresh access-token session.
-- Invalid, expired, or missing refresh cookie should return `401`.
-- After refresh succeeds, frontend should replace the stored access token and expiry with the returned values.
-
-`GET /api/auth/me` does not refresh tokens. It only validates the current access token and returns the linked local HeartLog user.
-
-## App Startup
-
-Recommended startup flow:
-
-1. Restore the locally stored session.
-2. If there is no stored session, show the unauthenticated/login flow.
-3. If there is a stored session, call `GET /api/auth/me` with the current access token.
-4. If `/me` returns `200`, store the returned HeartLog user and render the authenticated app.
-5. If `/me` returns `401`, call `POST /api/auth/refresh` with credentials included.
-6. If refresh succeeds, retry `GET /api/auth/me` with the new access token.
-7. If refresh fails, clear local auth state and show login.
-
-## Current User
-
-```http
-GET /api/auth/me
-Authorization: Bearer ACCESS_TOKEN
-```
-
-Success response:
+`GET /api/auth/me` requires the bearer token and returns:
 
 ```json
 {
@@ -146,171 +114,113 @@ Success response:
 }
 ```
 
-Use `/api/auth/me` for local HeartLog user state. Do not decode tokens in the frontend to infer app user identity.
+This endpoint validates the current session; it does not refresh it.
 
-## Forgot Password For Current User
+### Startup and retry behavior
 
-```http
-POST /api/auth/forgot-password/me
-Authorization: Bearer ACCESS_TOKEN
-```
+1. Restore access-token state if the application persists it.
+2. With a token, load `/api/auth/me` and render the authenticated app on success.
+3. On an expired/missing token, the frontend can attempt refresh with credentials,
+   then load `/me` using the new token. An HttpOnly cookie cannot be inspected by
+   JavaScript, so absence of local token state alone does not prove it is absent.
+4. For a protected request returning `401`, refresh and retry the original request
+   at most once. Coordinate concurrent refresh attempts to avoid rotation races.
+5. If refresh returns `401`, clear auth state and show login. Handle temporary
+   provider failures as availability errors rather than entering a retry loop.
 
-Expected response:
+## Browser cookies and CORS
 
-```json
-{
-  "success": true,
-  "message": "If an account exists for this email, a password reset link has been sent."
-}
-```
-
-Important details:
-
-- This endpoint is only for authenticated users.
-- The backend resolves the current HeartLog user from the bearer token and sends the reset email to that user's email address.
-- The frontend must not send an email address for this flow.
-- The email link uses the same reset confirmation and password update flow as the unauthenticated forgot-password endpoint.
-
-## Reset Password
-
-```http
-POST /api/auth/reset-password
-Content-Type: application/json
-
-{
-  "password": "NewPass123!"
-}
-```
-
-Important details:
-
-- This endpoint is only for forgot-password/recovery flows.
-- Frontend requests must include credentials so the browser sends the `heartlog_password_reset_token` cookie.
-- After the password reset succeeds, the backend signs out all Supabase sessions for the recovered user.
-- The backend also clears HeartLog's password reset cookie and normal refresh-token cookie in the current browser.
-- The frontend should clear any locally stored access token and app auth state after a successful recovery reset.
-
-## Change Password
-
-```http
-POST /api/auth/change-password
-Authorization: Bearer ACCESS_TOKEN
-Content-Type: application/json
-
-{
-  "currentPassword": "OldPass123!",
-  "newPassword": "NewPass123!"
-}
-```
-
-Expected response:
-
-```json
-{
-  "success": true,
-  "message": "Password changed successfully"
-}
-```
-
-Important details:
-
-- This endpoint is only for authenticated users.
-- The backend resolves the current HeartLog user from the bearer token and uses that user's email for Supabase verification.
-- The current password is required and bad credentials return `401`.
-- The new password uses the same API password complexity validation as registration and reset password.
-- After the password changes, the current session stays logged in.
-- Other sessions for the same Supabase user are signed out by revoking their refresh tokens.
-- Already-issued access tokens in other sessions may continue working until they expire.
-- No local `Users` table password field is updated. Supabase owns password storage.
-
-## Authenticated Requests
-
-Send the access token on protected API calls:
-
-```http
-Authorization: Bearer ACCESS_TOKEN
-```
-
-Do not send `userId` for normal user-owned requests.
-
-Use:
-
-```http
-GET /api/emotion-entries
-Authorization: Bearer ACCESS_TOKEN
-```
-
-Do not use:
-
-```http
-GET /api/emotion-entries?userId=...
-Authorization: Bearer ACCESS_TOKEN
-```
-
-The backend validates the token, reads `sub`, resolves the local `User.Id`, and queries only that user's data.
-
-## Logout
-
-Current expected behavior:
-
-- Frontend calls `POST /api/auth/logout`.
-- Backend clears the refresh-token cookie.
-- Frontend clears stored access token and local app auth state.
-
-## Expected Errors
-
-- Missing access token on protected endpoint: `401 Unauthorized`.
-- Invalid or expired access token: `401 Unauthorized`.
-- Missing, invalid, or expired refresh cookie: `401 Unauthorized`.
-- Valid Supabase token but no linked local HeartLog user: `401 Unauthorized`.
-- Bad login credentials: `401 Unauthorized`.
-- Bad current password during password change: `401 Unauthorized` with `invalidCurrentPassword`.
-- Registration email already exists locally: `400 Bad Request`.
-- Temporary auth provider issue: controlled authentication error response.
-
-## Important Rules
-
-- Treat `accessToken` as sensitive.
-- Refresh tokens should be stored only in an HttpOnly cookie once the cookie-based flow is implemented.
-- Do not store or expose `supabaseUserId` in frontend app state unless a future feature explicitly needs it.
-- Use `/api/auth/me` for the local HeartLog user id and profile state.
-- Do not trust frontend-provided user ids for ownership checks.
-- For regular user-owned resources, backend identity always comes from the bearer token.
-
-## Cookie-Based Refresh Requirements
-
-For same-origin frontend/API deployments, normal browser requests are enough.
-
-For cross-origin frontend/API deployments, frontend requests that need to receive or send the refresh cookie must include credentials:
+Use `credentials: "include"` (or Axios `withCredentials: true`) on login, refresh,
+logout, and recovery requests that set or use cookies. Refresh has no JSON body:
 
 ```ts
-await fetch("/api/auth/login", {
-  method: "POST",
-  credentials: "include",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ email, password })
-});
-
-await fetch("/api/auth/refresh", {
-  method: "POST",
-  credentials: "include"
-});
-
-await fetch("/api/auth/logout", {
+await fetch(`${API_BASE_URL}/api/auth/refresh`, {
   method: "POST",
   credentials: "include"
 });
 ```
 
-Backend cookie expectations:
+Both cookies are HttpOnly and host-scoped. Development uses `SameSite=Lax` and
+`Secure=false`; other environments use `SameSite=None` and `Secure=true`.
+Cross-origin requests require the exact frontend origin in backend CORS settings
+and credential support. Cross-site production cookies require HTTPS and remain
+subject to browser cookie restrictions.
 
-- Cookie name: `heartlog_refresh_token`.
-- Cookie is `HttpOnly`.
-- Local development cookie uses `SameSite=Lax`.
-- Deployed cookie uses `SameSite=None; Secure` so Vercel-to-Render cross-site requests can send it.
-- Backend CORS must allow the exact frontend origin and credentials for cross-origin browser clients.
-- Frontend must not manually read or write this cookie.
+| Cookie | Path | Browser expiry set by HeartLog |
+| --- | --- | --- |
+| `heartlog_refresh_token` | `/api/auth` | 30 days from issuance |
+| `heartlog_password_reset_token` | `/api/auth/reset-password` | 15 minutes from issuance |
 
-## Account deletion
+Cookie expiry does not extend the underlying provider token's validity. Do not
+read, store, send, or manually delete refresh tokens in JavaScript.
 
-See [account-deletion.md](account-deletion.md) for the authenticated deletion request, confirmation behavior, cookie handling, and required frontend cache cleanup.
+## Password recovery and password changes
+
+| Endpoint | Authentication | Request and behavior |
+| --- | --- | --- |
+| `POST /api/auth/forgot-password` | Anonymous | JSON `{ "email": "user@example.com" }`; sends a recovery email when appropriate. |
+| `POST /api/auth/forgot-password/me` | Bearer token | No email body; uses the authenticated user's email. |
+| `GET /api/auth/reset-password/confirm` | Recovery email token | Query `token_hash=TOKEN_HASH&type=recovery`; verifies the token and sets the short-lived recovery cookie. |
+| `POST /api/auth/reset-password` | Recovery cookie | JSON `{ "password": "NewPass123!" }`, with credentials included. |
+| `POST /api/auth/change-password` | Bearer token | JSON `{ "currentPassword": "OldPass123!", "newPassword": "NewPass123!" }`. |
+
+Both forgot-password endpoints return the generic message
+`If an account exists for this email, a password reset link has been sent.`
+The recovery confirmation redirects to
+`{Frontend:BaseUrl}/reset-password?status=ready`, `expired`, or `invalid`.
+On `ready`, show the password form and submit with credentials; the token stays
+in the HttpOnly cookie rather than frontend state or the redirect URL.
+
+Successful recovery reset signs out the recovered user's Supabase sessions and
+clears both HeartLog cookies in the current browser. Clear local access-token
+state and return to login. Authenticated password change requires the current
+password, keeps the current session, and revokes other sessions' refresh tokens.
+Already-issued access tokens can remain valid until expiry. Supabase owns password
+storage; no local password field is updated. Registration, reset, and change use
+the API's password complexity validation.
+
+## Logout and deletion
+
+`POST /api/auth/logout`, with credentials included, clears the refresh cookie.
+The frontend must clear its access token and app state. This endpoint does not
+currently revoke Supabase sessions server-side; existing bearer tokens can remain
+valid until expiry.
+
+For `DELETE /api/auth/me`, password confirmation, cookie cleanup, immediate access
+revocation, and cache removal, follow [account deletion](account-deletion.md).
+
+## Error handling
+
+| Condition | HTTP status / code |
+| --- | --- |
+| Invalid request fields | `400` validation response |
+| Invalid login credentials | `401`, `invalidCredentials` |
+| Unconfirmed login | `401`, `emailNotConfirmed` |
+| Wrong current password | `401`, `invalidCurrentPassword` |
+| Missing/invalid access token, missing refresh cookie, missing or pending local user | `401` |
+| Authentication provider unavailable | `503`, `authenticationUnavailable` |
+
+Email/recovery confirmation failures use the redirect status described above.
+Do not assume a duplicate registration must return an error. Consult OpenAPI for
+endpoint-specific error responses.
+
+## Backend and Supabase configuration
+
+Configure backend-only `Supabase__ProjectUrl`, `Supabase__PublishableKey`,
+`Supabase__JwtAudience` (default `authenticated`), and `Supabase__SecretKey`.
+The secret key is required for account-deletion administration and must never be
+sent to the frontend. Set `Frontend__BaseUrl` for confirmation/recovery redirects
+and `Cors__AllowedOrigins__0`, `__1`, etc. for allowed browser origins.
+
+Enable email confirmation in the Supabase project. Configure confirmation and
+recovery email templates to target the API's actual base URL:
+
+```html
+<!-- Signup confirmation -->
+<a href="https://YOUR_API_HOST/api/auth/confirm-email?token_hash={{ .TokenHash }}&type=email">Confirm email</a>
+<!-- Password recovery -->
+<a href="https://YOUR_API_HOST/api/auth/reset-password/confirm?token_hash={{ .TokenHash }}&type=recovery">Reset password</a>
+```
+
+With the current local Kestrel configuration, replace `https://YOUR_API_HOST` with
+`http://localhost` (port 80), rather than the unused launch-profile port 5048.

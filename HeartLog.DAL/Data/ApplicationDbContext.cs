@@ -22,7 +22,6 @@ public class ApplicationDbContext: DbContext
 
     public DbSet<EmotionEntry> EmotionEntries { get; set; } = null!;
 
-    public DbSet<EmotionEntryEmotion> EmotionEntryEmotions { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -33,6 +32,5 @@ public class ApplicationDbContext: DbContext
         modelBuilder.ApplyConfiguration(new EmotionConfiguration());
         modelBuilder.ApplyConfiguration(new EmotionTranslationConfiguration());
         modelBuilder.ApplyConfiguration(new EmotionEntryConfiguration());
-        modelBuilder.ApplyConfiguration(new EmotionEntryEmotionConfiguration());
     }
 }

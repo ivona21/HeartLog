@@ -1,3 +1,4 @@
+using HeartLog.BLL.Diagnostics;
 using HeartLog.BLL.Services.Encryption;
 using HeartLog.BLL.Exceptions;
 using HeartLog.BLL.Interfaces;
@@ -32,45 +33,59 @@ public class EmotionEntryService : IEmotionEntryService
             throw new UnauthorizedAccessException("Authenticated user id was not found.");
         }
 
-        var entries = await _emotionEntriesRepository.GetAllByUserIdAsync(userId, cancellationToken);
+        List<EmotionEntry> entries;
+        using (EntryReadDiagnostics.Source.StartActivity("entries.fetch"))
+            entries = await _emotionEntriesRepository.GetAllByUserIdAsync(userId, cancellationToken);
 
-        var results = new List<EmotionEntryResult>();
-        foreach (var entry in entries)
-            results.Add(await ToResultAsync(entry, userId));
-        return results;
+        if (entries.Count == 0)
+            return [];
+
+        var decrypted = entries.Select(entry => DecryptEntry(entry, userId)).ToList();
+        var emotionIds = decrypted.SelectMany(entry => entry.Emotions)
+            .Select(emotion => emotion.EmotionId).Distinct().ToArray();
+        Dictionary<Guid, Emotion> emotions;
+        using (EntryReadDiagnostics.Source.StartActivity("entries.emotions"))
+            emotions = (await _emotionsRepository.GetByIdsAsync(emotionIds, cancellationToken))
+                .ToDictionary(emotion => emotion.Id);
+
+        return decrypted.Select(entry => ToResult(entry, emotions)).ToList();
     }
 
-    private sealed record StoredEmotion(Guid EmotionId, bool IsPrimary);
+    private sealed record DecryptedEntry(EmotionEntry Entry, string? Comment, List<StoredEmotion> Emotions);
 
-    private async Task<EmotionEntryResult> ToResultAsync(EmotionEntry entry, Guid userId)
+    private DecryptedEntry DecryptEntry(EmotionEntry entry, Guid userId)
     {
         if (entry.UserId != userId)
             throw new UnauthorizedAccessException("Entry owner does not match.");
-        string? comment;
-        List<SelectedEmotion> selected;
-        if (entry.EncryptedEmotions is not null)
-        {
-            var stored = _encryption.Decrypt<List<StoredEmotion>>(userId, entry.Id, "emotions", entry.EncryptedEmotions);
-            comment = entry.EncryptedNote is null ? null
-                : _encryption.Decrypt<string>(userId, entry.Id, "note", entry.EncryptedNote);
-            var emotions = (await _emotionsRepository.GetByIdsAsync(stored.Select(e => e.EmotionId)))
+        if (entry.EncryptedEmotions is null)
+            throw new System.Security.Cryptography.CryptographicException("Entry content could not be decrypted.");
+        using var activity = EntryReadDiagnostics.Source.StartActivity("entries.decrypt");
+        var stored = _encryption.Decrypt<List<StoredEmotion>>(userId, entry.Id, "emotions", entry.EncryptedEmotions);
+        var comment = entry.EncryptedNote is null ? null
+            : _encryption.Decrypt<string>(userId, entry.Id, "note", entry.EncryptedNote);
+        return new DecryptedEntry(entry, comment, stored);
+    }
+
+    private async Task<EmotionEntryResult> ToResultAsync(EmotionEntry entry, Guid userId)
+    {
+        var decrypted = DecryptEntry(entry, userId);
+        Dictionary<Guid, Emotion> emotions;
+        using (EntryReadDiagnostics.Source.StartActivity("entries.emotions"))
+            emotions = (await _emotionsRepository.GetByIdsAsync(decrypted.Emotions.Select(e => e.EmotionId)))
                 .ToDictionary(e => e.Id);
-            selected = stored.Select(e => new SelectedEmotion
-            {
-                EmotionKey = emotions[e.EmotionId].Key, IsPrimary = e.IsPrimary
-            }).ToList();
-        }
-        else
+        return ToResult(decrypted, emotions);
+    }
+
+    private static EmotionEntryResult ToResult(DecryptedEntry decrypted, IReadOnlyDictionary<Guid, Emotion> emotions)
+    {
+        var entry = decrypted.Entry;
+        var selected = decrypted.Emotions.Select(e => new SelectedEmotion
         {
-            comment = entry.Comment;
-            selected = entry.EmotionEntryEmotions.Select(e => new SelectedEmotion
-            {
-                EmotionKey = e.Emotion.Key, IsPrimary = e.IsPrimary
-            }).ToList();
-        }
+            EmotionKey = emotions[e.EmotionId].Key, IsPrimary = e.IsPrimary
+        }).ToList();
         return new EmotionEntryResult
         {
-            EntryId = entry.Id, Comment = comment, OccurredAt = entry.OccurredAt,
+            EntryId = entry.Id, Comment = decrypted.Comment, OccurredAt = entry.OccurredAt,
             CreatedAt = entry.CreatedAt,
             SelectedEmotions = selected.OrderByDescending(e => e.IsPrimary).ThenBy(e => e.EmotionKey).ToList()
         };
@@ -160,9 +175,7 @@ public class EmotionEntryService : IEmotionEntryService
         emotionEntry.EncryptedEmotions = _encryption.Encrypt(userId, emotionEntry.Id, "emotions",
             normalizedEmotionKeys.Select(key => new StoredEmotion(emotionsByKey[key].Id,
                 string.Equals(key, normalizedPrimaryEmotionKey, StringComparison.Ordinal))).ToList());
-        emotionEntry.Comment = null;
-        emotionEntry.EmotionEntryEmotions.Clear();
-        // One SaveChanges transaction writes both bundles and deletes legacy selections.
+        // One SaveChanges transaction writes both bundles.
         if (existing is null)
             await _emotionEntriesRepository.AddAsync(emotionEntry, cancellationToken);
         await _emotionEntriesRepository.SaveChangesAsync(cancellationToken);

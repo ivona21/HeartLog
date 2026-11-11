@@ -8,10 +8,12 @@ openapi/heartlog.openapi.json
 
 ## Generate Locally
 
-1. Start the backend:
+1. Configure the backend as described in the [README](../README.md), then start it
+   from its directory so `.env` is loaded:
 
    ```bash
-   dotnet run --project HeartLog.Api --launch-profile http
+   cd HeartLog.Api
+   dotnet run --launch-profile http
    ```
 
    The current app startup forces Kestrel to port `80`, so Swagger UI is available at:
@@ -26,7 +28,7 @@ openapi/heartlog.openapi.json
    http://localhost/swagger/v1/swagger.json
    ```
 
-2. In another terminal, export the OpenAPI spec:
+2. In another terminal at the repository root, export the OpenAPI spec:
 
    ```bash
    bash scripts/export-openapi.sh

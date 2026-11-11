@@ -24,10 +24,10 @@ public class EmotionsRepository : IEmotionsRepository
             .ToListAsync();
     }
 
-    public Task<List<Emotion>> GetByIdsAsync(IEnumerable<Guid> ids)
+    public Task<List<Emotion>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default)
     {
         var idList = ids.ToList();
-        return _context.Emotions.AsNoTracking().Where(e => idList.Contains(e.Id)).ToListAsync();
+        return _context.Emotions.AsNoTracking().Where(e => idList.Contains(e.Id)).ToListAsync(cancellationToken);
     }
 
     public async Task<List<Emotion>> GetActiveByKeysAsync(IEnumerable<string> keys)

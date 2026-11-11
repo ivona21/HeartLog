@@ -16,7 +16,7 @@ public class EmotionEntriesRepository : IEmotionEntriesRepository
 
     public async Task<bool> DeleteByIdAndUserIdAsync(Guid entryId, Guid userId, CancellationToken cancellationToken = default)
     {
-        // Execute immediately; the database cascades deletion to the entry's selected emotions.
+        // Execute immediately; encrypted selections are stored in the entry row.
         var deletedCount = await _context.EmotionEntries
             .Where(entry => entry.Id == entryId && entry.UserId == userId)
             .ExecuteDeleteAsync(cancellationToken);
@@ -26,7 +26,7 @@ public class EmotionEntriesRepository : IEmotionEntriesRepository
 
     public Task<EmotionEntry?> GetByIdAndUserIdAsync(Guid entryId, Guid userId, CancellationToken cancellationToken = default)
     {
-        return _context.EmotionEntries.Include(e => e.EmotionEntryEmotions)
+        return _context.EmotionEntries
             .SingleOrDefaultAsync(e => e.Id == entryId && e.UserId == userId, cancellationToken);
     }
 
@@ -58,8 +58,6 @@ public class EmotionEntriesRepository : IEmotionEntriesRepository
         return await _context.EmotionEntries
             .AsNoTracking()
             .Where(entry => entry.UserId == userId)
-            .Include(entry => entry.EmotionEntryEmotions)
-            .ThenInclude(entryEmotion => entryEmotion.Emotion)
             .OrderByDescending(entry => entry.OccurredAt)
             .ThenByDescending(entry => entry.CreatedAt)
             .ToListAsync(cancellationToken);
