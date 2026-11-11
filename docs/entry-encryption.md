@@ -4,7 +4,7 @@ New entries and edits encrypt notes and selected emotion IDs (including the prim
 
 The entry GUID is allocated before encryption. IDs, ownership, and dates remain queryable. The API still uses emotion keys and `comment`, including a null comment. `PUT /api/emotion-entries/{entryId}` accepts the same body as POST and returns the same response shape. PUT replaces the selected emotions and note; an omitted/null comment clears the note, while an omitted/null occurredAt retains the existing date.
 
-Reads filter ownership before decryption. Presence of `EncryptedEmotions` marks an encrypted row. A null encrypted note is valid; malformed bundles, unknown key IDs, and authentication failures raise errors without falling back to readable storage. Legacy rows remain readable. Editing one writes both encrypted fields and clears `Comment` and all its `EmotionEntryEmotions` links in one SaveChanges transaction. No backfill or legacy column removal is included.
+Reads filter ownership before decryption. Presence of `EncryptedEmotions` marks an encrypted row. A null encrypted note is valid; malformed bundles, unknown key IDs, and authentication failures raise errors without falling back to readable storage. The encrypted-only release requires backfill before cutover and removes the legacy mappings. See [the backfill runbook](entry-encryption-backfill.md) for the completed backfill, guarded schema cleanup, deployment order, and outstanding backup retention record.
 
 ## Configuration to perform yourself
 
@@ -23,4 +23,4 @@ Reads filter ownership before decryption. Presence of `EncryptedEmotions` marks 
 
    Merge this section into existing local configuration. Development means `ASPNETCORE_ENVIRONMENT=Development`.
 3. Before any future deployment, create a Render Secret File named `heartlog-entry-v1` with content `<BASE64_ENCODED_32_BYTE_PRODUCTION_KEY>`. Render must mount it at `/etc/secrets/heartlog-entry-v1`. In non-development environments the application reads that exact file; there is no environment-variable fallback. Missing, malformed, or incorrectly sized keys stop startup before database migration/seeding. The configured key resolves bundle ID `v1`; unknown IDs fail reads.
-4. A future deployment will apply the additive migration through the existing startup migration flow. Coordinate key provisioning before that deployment. Production deployment, production backfill, key rotation, and removal of legacy storage are separate work. Do not remove the key while any encrypted rows need it.
+4. The additive encryption migration precedes backfill. The cleanup deployment requires `EntryEncryption__AllowLegacyCleanup=true` and a successful verification receipt; stop all old API instances before that deployment. Coordinate key provisioning before that deployment. Production deployment, production backfill, key rotation, and removal of legacy storage are separate work. Do not remove the key while any encrypted rows need it.
