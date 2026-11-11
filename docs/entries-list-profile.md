@@ -70,9 +70,11 @@ before response exactly. The comparison artifact contained only an encrypted
 response and account reference, was stored outside the repository, and was
 deleted after the successful comparison. Production data was not modified.
 
-The existing disposable-PostgreSQL checks now assert two commands for a populated
+Temporary disposable-PostgreSQL checks verified two commands for a populated
 journal and one for an empty account, alongside null/empty/Unicode notes, primary
-flags, inactive emotions, and normal HTTP reads and edits.
+flags, inactive emotions, and normal HTTP reads and edits. These checks passed
+during implementation; the temporary test project was subsequently removed
+pending a dedicated test-suite task. The profiling tool remains available.
 
 ## Reproduce
 

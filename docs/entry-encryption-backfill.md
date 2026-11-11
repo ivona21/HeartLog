@@ -110,22 +110,16 @@ only before schema removal.
 
 ## Validation performed locally
 
-The integration runner uses a disposable local PostgreSQL instance and real
-journal controllers over loopback HTTP with test-only authentication. It never
-loads production configuration. It checks interrupted runs, rerun idempotency,
-null/empty/Unicode notes, multiple selections, primary flags, inactive selections,
-date preservation, comparison failures, missing/stale verification receipts,
-actual schema removal, GET reads and PUT edits after cleanup.
+A temporary integration runner verified the migration against disposable local
+PostgreSQL using real journal controllers over loopback HTTP and synthetic data.
+Checks covered interrupted runs, rerun idempotency, null/empty/Unicode notes,
+multiple selections, primary flags, inactive selections, date preservation,
+comparison failures, missing/stale verification receipts, schema removal,
+and GET reads and PUT edits after cleanup.
 
-```sh
-# Start a disposable instance; this name/port must be unused.
-docker run --detach --name heartlog-entry-migration-test --publish 127.0.0.1:55439:5432 --env POSTGRES_PASSWORD=local-migration-test postgres:17
-dotnet build tests/HeartLog.EntryMigrationChecks/HeartLog.EntryMigrationChecks.csproj
-dotnet tests/HeartLog.EntryMigrationChecks/bin/Debug/net9.0/HeartLog.EntryMigrationChecks.dll
-```
-
-The runner creates a unique database per run in that disposable container.
-Remove that container after testing; it contains only synthetic fixtures.
+Those checks passed during implementation. The temporary test project was
+subsequently removed; a dedicated test suite is planned as a separate task.
+The migration and profiling tools remain available.
 
 ## Backup retention record — pending account access
 

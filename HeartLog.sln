@@ -13,8 +13,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tools", "tools", "{07C2787E
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HeartLog.EntryMigration", "tools\HeartLog.EntryMigration\HeartLog.EntryMigration.csproj", "{B9B1BCC2-E38E-4B84-A9B7-6835CFE6217F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HeartLog.EntryMigrationChecks", "tests\HeartLog.EntryMigrationChecks\HeartLog.EntryMigrationChecks.csproj", "{DBAA5BBC-9FE0-44DB-8B08-B461738FAC8F}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HeartLog.EntryProfile", "tools\HeartLog.EntryProfile\HeartLog.EntryProfile.csproj", "{17CD297A-41FE-4AA8-B897-97EB3EBCD3DE}"
 EndProject
 Global
@@ -75,18 +73,6 @@ Global
 		{B9B1BCC2-E38E-4B84-A9B7-6835CFE6217F}.Release|x64.Build.0 = Release|Any CPU
 		{B9B1BCC2-E38E-4B84-A9B7-6835CFE6217F}.Release|x86.ActiveCfg = Release|Any CPU
 		{B9B1BCC2-E38E-4B84-A9B7-6835CFE6217F}.Release|x86.Build.0 = Release|Any CPU
-		{DBAA5BBC-9FE0-44DB-8B08-B461738FAC8F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{DBAA5BBC-9FE0-44DB-8B08-B461738FAC8F}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{DBAA5BBC-9FE0-44DB-8B08-B461738FAC8F}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{DBAA5BBC-9FE0-44DB-8B08-B461738FAC8F}.Debug|x64.Build.0 = Debug|Any CPU
-		{DBAA5BBC-9FE0-44DB-8B08-B461738FAC8F}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{DBAA5BBC-9FE0-44DB-8B08-B461738FAC8F}.Debug|x86.Build.0 = Debug|Any CPU
-		{DBAA5BBC-9FE0-44DB-8B08-B461738FAC8F}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{DBAA5BBC-9FE0-44DB-8B08-B461738FAC8F}.Release|Any CPU.Build.0 = Release|Any CPU
-		{DBAA5BBC-9FE0-44DB-8B08-B461738FAC8F}.Release|x64.ActiveCfg = Release|Any CPU
-		{DBAA5BBC-9FE0-44DB-8B08-B461738FAC8F}.Release|x64.Build.0 = Release|Any CPU
-		{DBAA5BBC-9FE0-44DB-8B08-B461738FAC8F}.Release|x86.ActiveCfg = Release|Any CPU
-		{DBAA5BBC-9FE0-44DB-8B08-B461738FAC8F}.Release|x86.Build.0 = Release|Any CPU
 		{17CD297A-41FE-4AA8-B897-97EB3EBCD3DE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{17CD297A-41FE-4AA8-B897-97EB3EBCD3DE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{17CD297A-41FE-4AA8-B897-97EB3EBCD3DE}.Debug|x64.ActiveCfg = Debug|Any CPU
@@ -105,7 +91,6 @@ Global
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{B9B1BCC2-E38E-4B84-A9B7-6835CFE6217F} = {07C2787E-EAC7-C090-1BA3-A61EC2A24D84}
-		{DBAA5BBC-9FE0-44DB-8B08-B461738FAC8F} = {07C2787E-EAC7-C090-1BA3-A61EC2A24D84}
 		{17CD297A-41FE-4AA8-B897-97EB3EBCD3DE} = {07C2787E-EAC7-C090-1BA3-A61EC2A24D84}
 	EndGlobalSection
 EndGlobal
