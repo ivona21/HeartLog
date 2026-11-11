@@ -30,7 +30,9 @@ entries. Use 10:19:19 UTC as a conservative upper bound for the last plaintext
 removal time when obtaining recovery-history expiry evidence. The one-time
 cleanup flag was removed from `.env` afterward. A second API startup without the
 flag passed its health check; the temporary local process was stopped to release
-port 80 for the IDE. Render deployment status and backup expiry remain unconfirmed.
+port 80 for the IDE. The temporary startup flag guard was removed from the code
+on 2026-11-11; the migration's verification checks remain. Render deployment
+status and backup expiry remain unconfirmed.
 
 ## Tool
 
@@ -86,13 +88,12 @@ and any other database requiring migration.
    credentials, so this step requires access to the hosting account.
 2. Rerun `backfill`, `verify`, and `inspect`. Require zero legacy entries and a
    successful full verification immediately before deployment.
-3. Deploy this encrypted-only API with the existing production secret file and
-   `EntryEncryption__AllowLegacyCleanup=true`. Its startup migration validates the
-   verification receipt, requires encrypted emotions for every row, drops
-   `EmotionEntryEmotions` and `EmotionEntries.Comment`, and makes
-   `EncryptedEmotions` non-nullable. Startup refuses the destructive migration
-   without the explicit flag. Never apply this cleanup while old API instances
-   still run. Remove the flag after successful cutover.
+3. Deploy this encrypted-only API with the existing production secret file.
+   Startup applies pending migrations automatically. The cleanup migration
+   validates the verification receipt, requires encrypted emotions for every row,
+   drops `EmotionEntryEmotions` and `EmotionEntries.Comment`, and makes
+   `EncryptedEmotions` non-nullable. No separate startup cleanup flag is required.
+   Never apply this cleanup while old API instances still run.
 4. Rerun `inspect` and `verify`: zero legacy entries, `legacy_schema=False`, and
    all entries decryptable. Confirm the link table is absent. Keep the emotion
    catalog; encrypted selections still resolve catalog IDs.

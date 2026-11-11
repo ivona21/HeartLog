@@ -58,9 +58,8 @@ cleanup timestamps, tools, and unresolved backup-retention tracking. Schema remo
 does not establish that recovery history, branches, or exports have expired.
 
 For another database still awaiting cleanup, stop old API instances, backfill with
-the correct key, run full verification, and explicitly enable
-`EntryEncryption__AllowLegacyCleanup=true` for the cutover. The startup migration
-requires the verification receipt for nonempty databases and rejects changed
-ciphertext/metadata. Remove the flag after successful cleanup. Already-migrated
-databases do not need it on subsequent starts. Older API versions referencing
-removed storage cannot be used after cleanup.
+the correct key, and run full verification before starting this API. Startup
+applies pending migrations automatically. The cleanup migration requires a
+verification receipt for nonempty databases and rejects incomplete backfills or
+changed ciphertext/metadata. There is no separate startup cleanup flag. Older API
+versions referencing removed storage cannot be used after cleanup.

@@ -251,16 +251,6 @@ await using (var scope = app.Services.CreateAsyncScope())
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     var emotionSeeder = scope.ServiceProvider.GetRequiredService<EmotionSeeder>();
 
-    // Destructive cleanup is a separate operator-controlled cutover. In particular,
-    // starting a local API against Neon must not accidentally drop legacy storage.
-    const string legacyCleanupMigration = "20261110092906_RemoveLegacyEntryStorage";
-    var pendingMigrations = await dbContext.Database.GetPendingMigrationsAsync();
-    if (pendingMigrations.Contains(legacyCleanupMigration)
-        && !builder.Configuration.GetValue<bool>("EntryEncryption:AllowLegacyCleanup"))
-        throw new InvalidOperationException(
-            "Legacy entry cleanup requires a verified backfill and an explicit cutover. " +
-            "Stop old API instances, then set EntryEncryption__AllowLegacyCleanup=true for this deployment.");
-
     await dbContext.Database.MigrateAsync();
     await emotionSeeder.SeedAsync();
 }

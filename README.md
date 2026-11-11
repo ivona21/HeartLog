@@ -21,7 +21,8 @@ dotnet run --launch-profile http
 Startup applies database migrations, seeds the emotion catalog, and starts
 account-deletion and email workers against the configured database. Check the
 connection before starting, especially when using Neon. A database awaiting legacy
-encryption cleanup requires the explicit cutover described in the encryption guide.
+encryption cleanup requires the backfill and verification described in the
+[encryption guide](docs/entry-encryption.md) before startup.
 
 Kestrel currently listens on port 80 despite the launch-profile port. Development
 Swagger is at `http://localhost/index.html`; health is at `http://localhost/health`.
