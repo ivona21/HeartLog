@@ -1,26 +1,66 @@
 # Entry encryption
 
-New entries and edits encrypt notes and selected emotion IDs (including the primary flag) with AES-256-GCM. The nullable `EncryptedNote` and `EncryptedEmotions` columns are PostgreSQL `jsonb`; each bundle contains `keyId`, `nonce`, `ciphertext`, and `authTag`. Binary values use Base64. Each encryption uses a random 12-byte nonce and a 16-byte tag. Associated data is UTF-8 `heartlog:entry:{ownerId:D}:{entryId:D}:{field}`, with field `note` or `emotions`.
+Journal notes and selected emotion IDs, including primary flags, use
+AES-256-GCM. `EmotionEntries.EncryptedEmotions` is required PostgreSQL `jsonb`;
+`EncryptedNote` is nullable. A null note stays null, while an empty string has an
+encrypted payload. The legacy `Comment` column and readable per-entry emotion
+links have been removed from the active Neon database.
 
-The entry GUID is allocated before encryption. IDs, ownership, and dates remain queryable. The API still uses emotion keys and `comment`, including a null comment. `PUT /api/emotion-entries/{entryId}` accepts the same body as POST and returns the same response shape. PUT replaces the selected emotions and note; an omitted/null comment clears the note, while an omitted/null occurredAt retains the existing date.
+Each bundle contains `keyId`, `nonce`, `ciphertext`, and `authTag`, with binary
+values encoded as Base64. Encryption uses a fresh random 12-byte nonce and a
+16-byte authentication tag. Associated data is UTF-8
+`heartlog:entry:{ownerId:D}:{entryId:D}:{field}`, where field is `note` or
+`emotions`. The GUID is allocated before encryption. IDs, ownership, and dates
+remain queryable. The shared `StoredEmotion` contract stores IDs and primary flags.
 
-Reads filter ownership before decryption. Presence of `EncryptedEmotions` marks an encrypted row. A null encrypted note is valid; malformed bundles, unknown key IDs, and authentication failures raise errors without falling back to readable storage. The encrypted-only release requires backfill before cutover and removes the legacy mappings. See [the backfill runbook](entry-encryption-backfill.md) for the completed backfill, guarded schema cleanup, deployment order, and outstanding backup retention record.
+Ownership is checked before decryption. Malformed bundles, unknown key IDs, and
+authentication failures raise errors; there is no plaintext fallback. Lists resolve
+decrypted emotion IDs with one bulk catalog query per request, including inactive
+historical selections. The catalog remains readable, without per-entry links.
 
-## Configuration to perform yourself
+The API contract still uses emotion keys and `comment`. `PUT /api/emotion-entries/{entryId}` accepts the POST body shape and replaces notes and
+selections. A null/omitted comment clears the note; null/omitted `occurredAt`
+retains the existing occurrence date.
 
-1. Generate a cryptographically random **32-byte** key and encode it as Base64 using a trusted local secret tool (for example, run `openssl rand -base64 32` privately). Keep a recoverable secure backup; encrypted data requires the original key. Use separate keys for development and production. Never commit the values or put them in logs or tickets.
-2. For development, add the following line to the existing ignored `HeartLog.Api/.env` file (run the API from that directory so the existing DotNetEnv loader finds it):
+## Keys and local configuration
 
-   ```dotenv
-   EntryEncryption__Keys__v1=<BASE64_ENCODED_32_BYTE_DEVELOPMENT_KEY>
-   ```
+For a **new, separate database**, generate a cryptographically random 32-byte key
+and encode it as Base64 using a trusted secret tool, such as
+`openssl rand -base64 32`. Never generate a replacement v1 key for an existing
+encrypted database. Database backups require the original key to remain readable;
+keep a secure, recoverable key backup and never commit or log it.
 
-   Alternatively, the ignored `HeartLog.Api/appsettings.Development.json` can contain:
+In Development, configure the key through the ignored `HeartLog.Api/.env`:
 
-   ```json
-   { "EntryEncryption": { "Keys": { "v1": "<BASE64_ENCODED_32_BYTE_DEVELOPMENT_KEY>" } } }
-   ```
+```dotenv
+EntryEncryption__Keys__v1=<BASE64_ENCODED_32_BYTE_KEY>
+```
 
-   Merge this section into existing local configuration. Development means `ASPNETCORE_ENVIRONMENT=Development`.
-3. Before any future deployment, create a Render Secret File named `heartlog-entry-v1` with content `<BASE64_ENCODED_32_BYTE_PRODUCTION_KEY>`. Render must mount it at `/etc/secrets/heartlog-entry-v1`. In non-development environments the application reads that exact file; there is no environment-variable fallback. Missing, malformed, or incorrectly sized keys stop startup before database migration/seeding. The configured key resolves bundle ID `v1`; unknown IDs fail reads.
-4. The additive encryption migration precedes backfill. The cleanup deployment requires `EntryEncryption__AllowLegacyCleanup=true` and a successful verification receipt; stop all old API instances before that deployment. Coordinate key provisioning before that deployment. Production deployment, production backfill, key rotation, and removal of legacy storage are separate work. Do not remove the key while any encrypted rows need it.
+The ignored `appsettings.Development.json` can alternatively supply
+`EntryEncryption:Keys:v1`. Run the API from `HeartLog.Api` so its DotNetEnv loader
+finds `.env`. The key must match the connected database: Development mode does
+not make a Neon connection a separate development database. Use separate keys
+only when using separate databases.
+
+## Hosted configuration
+
+Non-development startup reads the existing Render Secret File
+`/etc/secrets/heartlog-entry-v1`; it has no environment-variable key fallback.
+Provision that file with the correct Base64 key before startup. Missing or invalid
+keys stop startup before migrations and seeding. Bundles currently use key ID
+`v1`; unknown IDs fail reads. Key rotation needs a separate migration design.
+
+## Migration and verification
+
+The production backfill and schema cleanup completed on 2026-11-10. See the
+[backfill record and runbook](entry-encryption-backfill.md) for counts, verification,
+cleanup timestamps, tools, and unresolved backup-retention tracking. Schema removal
+does not establish that recovery history, branches, or exports have expired.
+
+For another database still awaiting cleanup, stop old API instances, backfill with
+the correct key, run full verification, and explicitly enable
+`EntryEncryption__AllowLegacyCleanup=true` for the cutover. The startup migration
+requires the verification receipt for nonempty databases and rejects changed
+ciphertext/metadata. Remove the flag after successful cleanup. Already-migrated
+databases do not need it on subsequent starts. Older API versions referencing
+removed storage cannot be used after cleanup.
