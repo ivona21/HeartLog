@@ -24,6 +24,13 @@ using System.Text.Json.Serialization;
 DotNetEnv.Env.Load();
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddEnvironmentVariables();
+// Construct before migrations or hosted services run: invalid/missing keys fail startup.
+var entryEncryption = new HeartLog.BLL.Services.Encryption.EntryEncryption(
+    builder.Environment.IsDevelopment()
+        ? builder.Configuration["EntryEncryption:Keys:v1"]
+        : File.ReadAllText("/etc/secrets/heartlog-entry-v1").Trim());
+builder.Services.AddSingleton(entryEncryption);
+
 var supabaseSettings = builder.Configuration.GetSection("Supabase");
 var supabaseProjectUrl = supabaseSettings["ProjectUrl"]
                          ?? throw new InvalidOperationException("Supabase project URL is missing.");
@@ -234,7 +241,7 @@ builder.Services.AddOptions<SupabaseSettings>()
 
 builder.WebHost.ConfigureKestrel(options =>
 {
-    options.ListenAnyIP(80); // <--- This forces the app to listen on port 80
+    options.ListenAnyIP(80);
 });
 
 var app = builder.Build();

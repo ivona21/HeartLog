@@ -130,11 +130,15 @@ namespace HeartLog.DAL.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
-                    b.Property<string>("Comment")
-                        .HasColumnType("text");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("EncryptedEmotions")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("EncryptedNote")
+                        .HasColumnType("jsonb");
 
                     b.Property<DateTime>("OccurredAt")
                         .HasColumnType("timestamp with time zone");
@@ -150,37 +154,6 @@ namespace HeartLog.DAL.Migrations
                     b.HasIndex("UserId", "OccurredAt");
 
                     b.ToTable("EmotionEntries", (string)null);
-                });
-
-            modelBuilder.Entity("HeartLog.DAL.Models.EmotionEntryEmotion", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("EmotionEntryId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("EmotionId")
-                        .HasColumnType("uuid");
-
-                    b.Property<bool>("IsPrimary")
-                        .HasColumnType("boolean");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("EmotionEntryId")
-                        .IsUnique()
-                        .HasFilter("\"IsPrimary\" = true");
-
-                    b.HasIndex("EmotionId");
-
-                    b.HasIndex("EmotionEntryId", "EmotionId")
-                        .IsUnique();
-
-                    b.ToTable("EmotionEntryEmotions", (string)null);
                 });
 
             modelBuilder.Entity("HeartLog.DAL.Models.EmotionTranslation", b =>
@@ -268,25 +241,6 @@ namespace HeartLog.DAL.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("HeartLog.DAL.Models.EmotionEntryEmotion", b =>
-                {
-                    b.HasOne("HeartLog.DAL.Models.EmotionEntry", "EmotionEntry")
-                        .WithMany("EmotionEntryEmotions")
-                        .HasForeignKey("EmotionEntryId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("HeartLog.DAL.Models.Emotion", "Emotion")
-                        .WithMany()
-                        .HasForeignKey("EmotionId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Emotion");
-
-                    b.Navigation("EmotionEntry");
-                });
-
             modelBuilder.Entity("HeartLog.DAL.Models.EmotionTranslation", b =>
                 {
                     b.HasOne("HeartLog.DAL.Models.Emotion", "Emotion")
@@ -303,11 +257,6 @@ namespace HeartLog.DAL.Migrations
                     b.Navigation("Children");
 
                     b.Navigation("Translations");
-                });
-
-            modelBuilder.Entity("HeartLog.DAL.Models.EmotionEntry", b =>
-                {
-                    b.Navigation("EmotionEntryEmotions");
                 });
 
             modelBuilder.Entity("HeartLog.DAL.Models.User", b =>

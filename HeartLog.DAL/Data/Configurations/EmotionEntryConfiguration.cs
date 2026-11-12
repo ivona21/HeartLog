@@ -15,8 +15,8 @@ public class EmotionEntryConfiguration : IEntityTypeConfiguration<EmotionEntry>
         builder.Property(e => e.Id)
             .ValueGeneratedNever();
 
-        builder.Property(e => e.Comment)
-            .HasColumnType("text");
+        builder.Property(e => e.EncryptedNote).HasColumnType("jsonb");
+        builder.Property(e => e.EncryptedEmotions).HasColumnType("jsonb").IsRequired();
 
         builder.Property(e => e.OccurredAt)
             .IsRequired();

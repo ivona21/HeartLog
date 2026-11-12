@@ -5,5 +5,6 @@ namespace HeartLog.DAL.Interfaces;
 public interface IEmotionsRepository
 {
     Task<List<Emotion>> GetAllWithTranslationsAsync(string locale);
+    Task<List<Emotion>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default);
     Task<List<Emotion>> GetActiveByKeysAsync(IEnumerable<string> keys);
 }
