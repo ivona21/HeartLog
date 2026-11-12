@@ -1,0 +1,177 @@
+using System.Security.Cryptography;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using HeartLog.BLL.Services.Encryption;
+
+namespace HeartLog.BLL.Tests;
+
+public sealed class EntryEncryptionContractTests
+{
+    private static readonly Guid OwnerId = Guid.Parse("11111111-1111-4111-8111-111111111111");
+    private static readonly Guid EntryId = Guid.Parse("22222222-2222-4222-8222-222222222222");
+    private static readonly string TestKey = Convert.ToBase64String(
+        Enumerable.Range(0, 32).Select(i => (byte)i).ToArray());
+
+    [Fact]
+    public void Constructor_AcceptsBase64Encoded32ByteKey()
+    {
+        var encryption = new EntryEncryption(TestKey);
+        var bundle = encryption.Encrypt(OwnerId, EntryId, "note", "Synthetic note");
+
+        Assert.Equal("Synthetic note", encryption.Decrypt<string>(OwnerId, EntryId, "note", bundle));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("not a Base64 key!")]
+    public void Constructor_RejectsMissingOrInvalidKey(string? key)
+    {
+        Assert.Throws<InvalidOperationException>(() => new EntryEncryption(key));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(16)]
+    [InlineData(24)]
+    [InlineData(31)]
+    [InlineData(33)]
+    [InlineData(64)]
+    public void Constructor_RejectsWrongDecodedKeyLength(int length)
+    {
+        var key = Convert.ToBase64String(new byte[length]);
+
+        Assert.Throws<InvalidOperationException>(() => new EntryEncryption(key));
+    }
+
+    [Theory]
+    [InlineData("note")]
+    [InlineData("emotions")]
+    public void Decrypt_RejectsUnknownKeyId(string field)
+    {
+        var encryption = new EntryEncryption(TestKey);
+        var bundle = EncryptField(encryption, field);
+        bundle["keyId"] = "unknown-test-key";
+
+        AssertRejected(encryption, field, bundle.ToJsonString());
+    }
+
+    [Theory]
+    [InlineData("note")]
+    [InlineData("emotions")]
+    public void Decrypt_RejectsDifferentValidKey(string field)
+    {
+        var bundle = EncryptField(new EntryEncryption(TestKey), field);
+        var wrongKey = new EntryEncryption(Convert.ToBase64String(new byte[32]));
+
+        AssertRejected(wrongKey, field, bundle.ToJsonString());
+    }
+
+    [Theory]
+    [InlineData("not JSON")]
+    [InlineData("{")]
+    [InlineData("null")]
+    [InlineData("[]")]
+    [InlineData("{}")]
+    [InlineData("{\"keyId\":\"v1\",\"nonce\":\"invalid Base64!\"}")]
+    public void Decrypt_RejectsMalformedBundleWithoutLeakingParsingDetails(string json)
+    {
+        AssertRejected(new EntryEncryption(TestKey), "note", json);
+    }
+
+    [Theory]
+    [InlineData("keyId", null)]
+    [InlineData("keyId", "null")]
+    [InlineData("nonce", null)]
+    [InlineData("nonce", "null")]
+    [InlineData("nonce", "\"AA==\"")]
+    [InlineData("nonce", "\"not Base64!\"")]
+    [InlineData("ciphertext", null)]
+    [InlineData("ciphertext", "null")]
+    [InlineData("ciphertext", "\"not Base64!\"")]
+    [InlineData("authTag", null)]
+    [InlineData("authTag", "null")]
+    [InlineData("authTag", "\"AA==\"")]
+    public void Decrypt_RejectsMissingOrInvalidBundleComponent(string component, string? replacementJson)
+    {
+        var encryption = new EntryEncryption(TestKey);
+        var bundle = EncryptField(encryption, "note");
+        if (replacementJson is null)
+            bundle.Remove(component);
+        else
+            bundle[component] = JsonNode.Parse(replacementJson);
+
+        AssertRejected(encryption, "note", bundle.ToJsonString());
+    }
+
+    [Theory]
+    [InlineData("note", "nonce")]
+    [InlineData("note", "authTag")]
+    [InlineData("emotions", "nonce")]
+    [InlineData("emotions", "authTag")]
+    public void Decrypt_RejectsTamperedNonceOrAuthenticationTag(string field, string component)
+    {
+        var encryption = new EntryEncryption(TestKey);
+        var bundle = EncryptField(encryption, field);
+        var bytes = Convert.FromBase64String(bundle[component]!.GetValue<string>());
+        bytes[0] ^= 1;
+        bundle[component] = Convert.ToBase64String(bytes);
+
+        AssertRejected(encryption, field, bundle.ToJsonString());
+    }
+
+    [Theory]
+    [InlineData("note")]
+    [InlineData("emotions")]
+    public void Encrypt_SameValueAndContextUsesDifferent12ByteNonces(string field)
+    {
+        var encryption = new EntryEncryption(TestKey);
+        var first = EncryptField(encryption, field);
+        var second = EncryptField(encryption, field);
+        var firstNonce = Convert.FromBase64String(first["nonce"]!.GetValue<string>());
+        var secondNonce = Convert.FromBase64String(second["nonce"]!.GetValue<string>());
+
+        Assert.Equal(12, firstNonce.Length);
+        Assert.Equal(12, secondNonce.Length);
+        Assert.False(firstNonce.SequenceEqual(secondNonce));
+    }
+
+    [Fact]
+    public void Decrypt_ReadsFixedV1NoteAndEmotionsFixture()
+    {
+        // This file is a captured stored format, never generated by the test writer.
+        var path = Path.Combine(AppContext.BaseDirectory, "Fixtures", "entry-v1.json");
+        using var document = JsonDocument.Parse(File.ReadAllText(path));
+        var fixture = document.RootElement;
+        var reader = new EntryEncryption(fixture.GetProperty("keyBase64").GetString());
+        var ownerId = fixture.GetProperty("ownerId").GetGuid();
+        var entryId = fixture.GetProperty("entryId").GetGuid();
+
+        var note = reader.Decrypt<string>(ownerId, entryId, "note", fixture.GetProperty("noteBundle").GetRawText());
+        var emotions = reader.Decrypt<List<StoredEmotion>>(ownerId, entryId, "emotions",
+            fixture.GetProperty("emotionsBundle").GetRawText());
+
+        Assert.Equal(fixture.GetProperty("expectedNote").GetString(), note);
+        var expected = fixture.GetProperty("expectedEmotions").EnumerateArray()
+            .Select(e => new StoredEmotion(e.GetProperty("emotionId").GetGuid(), e.GetProperty("isPrimary").GetBoolean()))
+            .ToList();
+        Assert.Equal(expected, emotions);
+    }
+
+    private static JsonObject EncryptField(EntryEncryption encryption, string field)
+    {
+        var json = field == "note"
+            ? encryption.Encrypt(OwnerId, EntryId, field, "Synthetic note čćž\nSecond line")
+            : encryption.Encrypt(OwnerId, EntryId, field, new List<StoredEmotion> { new(EntryId, true) });
+        return JsonNode.Parse(json)!.AsObject();
+    }
+
+    private static void AssertRejected(EntryEncryption encryption, string field, string json)
+    {
+        var exception = Assert.Throws<CryptographicException>(() =>
+            encryption.Decrypt<object>(OwnerId, EntryId, field, json));
+        Assert.Equal("Entry content could not be decrypted.", exception.Message);
+        Assert.Null(exception.InnerException);
+    }
+}
