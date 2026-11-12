@@ -104,12 +104,16 @@ internal sealed class PostgresTestHost : IAsyncDisposable
         await db.GetService<IMigrator>().MigrateAsync(target);
     }
 
-    public async Task StartAsync()
+    public IServiceProvider Services => _app!.Services;
+
+    public async Task StartAsync(Action<IServiceCollection>? configure = null)
     {
         // Compose the real request path without executing Program.cs: no .env, external
         // identity provider, mail workers, production secrets, or production connection.
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions { EnvironmentName = "Testing" });
         builder.Configuration.Sources.Clear();
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        { ["Frontend:BaseUrl"] = "https://frontend.example.invalid/" });
         builder.WebHost.UseTestServer();
         builder.Logging.ClearProviders();
         builder.Logging.AddProvider(Logs);
@@ -127,6 +131,7 @@ internal sealed class PostgresTestHost : IAsyncDisposable
         builder.Services.AddScoped<IEmotionEntriesRepository, EmotionEntriesRepository>();
         builder.Services.AddAuthentication("Test").AddScheme<AuthenticationSchemeOptions, TestIdentityHandler>("Test", _ => { });
         builder.Services.AddAuthorization();
+        configure?.Invoke(builder.Services);
         _app = builder.Build();
         _app.UseMiddleware<ExceptionHandlingMiddleware>();
         _app.UseRouting();

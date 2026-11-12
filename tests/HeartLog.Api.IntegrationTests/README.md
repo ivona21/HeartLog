@@ -6,7 +6,7 @@ The default suite needs no database:
 dotnet test HeartLog.sln
 ```
 
-The seven integration tests skip unless `HEARTLOG_TEST_POSTGRES` is supplied.
+The sixteen integration tests skip unless `HEARTLOG_TEST_POSTGRES` is supplied.
 To run them with a disposable local PostgreSQL 17 container:
 
 ```sh
@@ -89,3 +89,9 @@ owner-scoped list and summary. Notes have no length/content validator; null, emp
 whitespace, and Unicode/multiline values are accepted. Existing storage tests cover
 successful create/edit, encrypted field round-trips, and rejected cross-user writes
 followed by an unchanged owner read; the regression tests reuse that coverage.
+
+Authentication and account lifecycle regression coverage is described in
+[AUTHENTICATION.md](AUTHENTICATION.md). Those tests also compose the real auth
+controller, user service, and Supabase adapter. A loopback-only scripted provider
+substitutes Supabase HTTP, including SDK requests; completion-email delivery is
+captured at IEmailService. No production provider or email credentials are used.
