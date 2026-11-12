@@ -6,7 +6,7 @@ The default suite needs no database:
 dotnet test HeartLog.sln
 ```
 
-The four integration tests skip unless `HEARTLOG_TEST_POSTGRES` is supplied.
+The seven integration tests skip unless `HEARTLOG_TEST_POSTGRES` is supplied.
 To run them with a disposable local PostgreSQL 17 container:
 
 ```sh
@@ -70,3 +70,22 @@ Current behavior to review: one unreadable entry fails its owner's entire list
 with a generic 500 rather than omitting that entry. Backfill retains the legacy
 plaintext and links until the verified cutover migration removes them. Backfill
 reruns are supported before cutover; the `verify` operation also works afterward.
+
+Additional regression coverage uses the same host and synthetic users:
+
+- List ordering by OccurredAt descending, then CreatedAt descending; empty lists
+  and owner-scoped summary counts/latest dates, including an empty summary.
+- Invalid create/update requests, missing writes, repeated deletion, removal from
+  storage and subsequent reads, and 401 on every supported route without sign-in.
+- Edits preserve CreatedAt and preserve OccurredAt when omitted; an explicit
+  replacement OccurredAt persists through a fresh HTTP read.
+- BLL unit tests cover selection validation for create and update (empty, blank,
+  duplicate after trimming, missing/unselected primary, unknown/inactive and
+  case-sensitive keys), normalization, optional/verbatim notes, default dates,
+  missing records, and empty authenticated IDs without writes.
+
+There is no detail GET endpoint, filtering, or pagination. Reads are the complete
+owner-scoped list and summary. Notes have no length/content validator; null, empty,
+whitespace, and Unicode/multiline values are accepted. Existing storage tests cover
+successful create/edit, encrypted field round-trips, and rejected cross-user writes
+followed by an unchanged owner read; the regression tests reuse that coverage.
