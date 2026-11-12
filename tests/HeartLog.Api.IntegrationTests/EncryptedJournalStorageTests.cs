@@ -58,6 +58,16 @@ public sealed class EncryptedJournalStorageTests
         var before = await RawRowAsync(host, original.EntryId);
         var changed = await SaveAsync(client, ChangedNote, ["test-calm", "test-hope"], "test-hope", original.EntryId);
         Assert.Equal(original.EntryId, changed.EntryId);
+        Assert.Equal(original.CreatedAt, changed.CreatedAt);
+        Assert.Equal(original.OccurredAt, changed.OccurredAt);
+        var changedDate = new DateTime(2026, 2, 3, 4, 5, 6, DateTimeKind.Utc);
+        var datedRequest = Request(ChangedNote, ["test-calm", "test-hope"], "test-hope");
+        datedRequest.OccurredAt = changedDate;
+        using var datedUpdate = await client.PutAsJsonAsync($"{Route}/{original.EntryId}", datedRequest);
+        Assert.Equal(HttpStatusCode.OK, datedUpdate.StatusCode);
+        var persisted = Assert.Single(await ReadAsync(client));
+        Assert.Equal(changedDate, persisted.OccurredAt);
+        Assert.Equal(original.CreatedAt, persisted.CreatedAt);
         var after = await RawRowAsync(host, original.EntryId);
         Assert.NotEqual(before["EncryptedNote"]!.ToJsonString(), after["EncryptedNote"]!.ToJsonString());
         Assert.NotEqual(before["EncryptedEmotions"]!.ToJsonString(), after["EncryptedEmotions"]!.ToJsonString());
