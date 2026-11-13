@@ -1,0 +1,99 @@
+name: Backend tests
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+# HeartLog.sln and global.json are at the repository root.
+defaults:
+  run:
+    shell: bash
+    working-directory: .
+
+jobs:
+  unit-tests:
+    name: Backend unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+      - name: Restore NuGet packages
+        run: dotnet restore HeartLog.sln
+      - name: Run database-free tests
+        run: >-
+          dotnet test tests/HeartLog.BLL.Tests/HeartLog.BLL.Tests.csproj
+          --no-restore --logger 'trx;LogFileName=unit.trx'
+          --results-directory "$GITHUB_WORKSPACE/TestResults/unit"
+      - name: Verify unit tests executed
+        if: ${{ always() }}
+        run: python3 .github/scripts/check-test-results.py TestResults/unit/unit.trx
+      - name: Upload unit test results
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: backend-unit-test-results
+          path: TestResults/unit/*.trx
+          if-no-files-found: error
+          retention-days: 14
+
+  postgres-tests:
+    name: Backend PostgreSQL tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: local-journal-test
+          POSTGRES_DB: postgres
+        ports:
+          - 127.0.0.1:55440:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      # This variable is both the opt-in switch and the connection string.
+      # The test host creates/migrates/seeds/drops its own databases; its fixed
+      # encryption key and synthetic provider/email credentials live in fixtures.
+      HEARTLOG_TEST_POSTGRES: Host=127.0.0.1;Port=55440;Database=postgres;Username=postgres;Password=local-journal-test
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+      - name: Restore NuGet packages
+        run: dotnet restore HeartLog.sln
+      - name: Run PostgreSQL integration tests
+        run: >-
+          dotnet test tests/HeartLog.Api.IntegrationTests/HeartLog.Api.IntegrationTests.csproj
+          --no-restore --logger 'trx;LogFileName=postgres.trx'
+          --results-directory "$GITHUB_WORKSPACE/TestResults/postgres"
+      - name: Verify PostgreSQL tests executed
+        if: ${{ always() }}
+        run: python3 .github/scripts/check-test-results.py TestResults/postgres/postgres.trx
+      - name: Upload PostgreSQL test results
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: backend-postgres-test-results
+          path: TestResults/postgres/*.trx
+          if-no-files-found: error
+          retention-days: 14

@@ -1,6 +1,7 @@
 # Build files
 bin/
 obj/
+TestResults/
 
 # User-specific files
 *.user
