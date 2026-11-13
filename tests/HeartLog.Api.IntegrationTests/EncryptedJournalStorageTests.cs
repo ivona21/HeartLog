@@ -54,12 +54,18 @@ public sealed class EncryptedJournalStorageTests
         await using var host = await PostgresTestHost.CreateAsync();
         await host.StartAsync();
         using var client = host.Client(PostgresTestHost.Owner);
-        var original = await SaveAsync(client, Note, ["test-joy"], "test-joy");
+        // Force sub-microsecond precision even on clocks that only return microseconds.
+        var occurredAt = new DateTime(2026, 1, 2, 3, 4, 5, DateTimeKind.Utc).AddTicks(3);
+        var original = await SaveAsync(client, Note, ["test-joy"], "test-joy", occurredAt: occurredAt);
+        Assert.Equal(occurredAt, original.OccurredAt);
+        var storedOriginal = Assert.Single(await ReadAsync(client));
+        Assert.Equal(PostgresTestHost.AtPostgresPrecision(original.CreatedAt), storedOriginal.CreatedAt);
+        Assert.Equal(PostgresTestHost.AtPostgresPrecision(original.OccurredAt), storedOriginal.OccurredAt);
         var before = await RawRowAsync(host, original.EntryId);
         var changed = await SaveAsync(client, ChangedNote, ["test-calm", "test-hope"], "test-hope", original.EntryId);
         Assert.Equal(original.EntryId, changed.EntryId);
-        Assert.Equal(original.CreatedAt, changed.CreatedAt);
-        Assert.Equal(original.OccurredAt, changed.OccurredAt);
+        Assert.Equal(storedOriginal.CreatedAt, changed.CreatedAt);
+        Assert.Equal(storedOriginal.OccurredAt, changed.OccurredAt);
         var changedDate = new DateTime(2026, 2, 3, 4, 5, 6, DateTimeKind.Utc);
         var datedRequest = Request(ChangedNote, ["test-calm", "test-hope"], "test-hope");
         datedRequest.OccurredAt = changedDate;
@@ -67,7 +73,7 @@ public sealed class EncryptedJournalStorageTests
         Assert.Equal(HttpStatusCode.OK, datedUpdate.StatusCode);
         var persisted = Assert.Single(await ReadAsync(client));
         Assert.Equal(changedDate, persisted.OccurredAt);
-        Assert.Equal(original.CreatedAt, persisted.CreatedAt);
+        Assert.Equal(storedOriginal.CreatedAt, persisted.CreatedAt);
         var after = await RawRowAsync(host, original.EntryId);
         Assert.NotEqual(before["EncryptedNote"]!.ToJsonString(), after["EncryptedNote"]!.ToJsonString());
         Assert.NotEqual(before["EncryptedEmotions"]!.ToJsonString(), after["EncryptedEmotions"]!.ToJsonString());
@@ -173,11 +179,13 @@ public sealed class EncryptedJournalStorageTests
         new() { Comment = note, EmotionKeys = emotions.ToList(), PrimaryEmotionKey = primary };
 
     private static async Task<EmotionEntryResponse> SaveAsync(HttpClient client, string? note, string[] emotions,
-        string primary, Guid? id = null)
+        string primary, Guid? id = null, DateTime? occurredAt = null)
     {
+        var request = Request(note, emotions, primary);
+        request.OccurredAt = occurredAt;
         using var response = id is null
-            ? await client.PostAsJsonAsync(Route, Request(note, emotions, primary))
-            : await client.PutAsJsonAsync($"{Route}/{id}", Request(note, emotions, primary));
+            ? await client.PostAsJsonAsync(Route, request)
+            : await client.PutAsJsonAsync($"{Route}/{id}", request);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var result = await response.Content.ReadFromJsonAsync<ApiResponse<EmotionEntryResponse>>();
         Assert.True(result!.Success);

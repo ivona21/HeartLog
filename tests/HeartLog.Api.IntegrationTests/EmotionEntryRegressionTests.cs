@@ -31,7 +31,8 @@ public sealed class EmotionEntryRegressionTests
         await Summary(other, 1, date.AddDays(1));
         Assert.Equal(PostgresTestHost.Owner, await host.ScalarAsync("SELECT \"UserId\" FROM \"EmotionEntries\" WHERE \"Id\"=@id", ("id", first.EntryId)));
         Assert.Equal(date, first.OccurredAt);
-        Assert.Equal(older.CreatedAt, (await List(owner)).Single(e => e.EntryId == older.EntryId).CreatedAt);
+        Assert.Equal(PostgresTestHost.AtPostgresPrecision(older.CreatedAt),
+            (await List(owner)).Single(e => e.EntryId == older.EntryId).CreatedAt);
         foreach (var entry in new[] { first, second, older })
         {
             using var deleted = await owner.DeleteAsync($"{Route}/{entry.EntryId}");

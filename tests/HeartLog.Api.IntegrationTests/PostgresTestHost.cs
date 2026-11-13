@@ -42,6 +42,11 @@ internal sealed class PostgresTestHost : IAsyncDisposable
 {
     public const string ConnectionVariable = "HEARTLOG_TEST_POSTGRES";
     public const string LegacyMigration = "20261106123526_AddEntryEncryption";
+
+    // Npgsql stores timestamps in microseconds, while DateTime also has 100ns ticks.
+    public static DateTime AtPostgresPrecision(DateTime value) =>
+        new(value.Ticks - value.Ticks % TimeSpan.TicksPerMicrosecond, value.Kind);
+
     public static readonly Guid Owner = Guid.Parse("11111111-1111-4111-8111-111111111111");
     public static readonly Guid Other = Guid.Parse("33333333-3333-4333-8333-333333333333");
     public static readonly Guid Joy = Guid.Parse("44444444-4444-4444-8444-444444444444");
