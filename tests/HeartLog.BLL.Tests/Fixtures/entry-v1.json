@@ -1,0 +1,29 @@
+{
+  "description": "Synthetic v1 fixture captured once with the production writer on 2026-11-12. Do not regenerate during tests.",
+  "keyBase64": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=",
+  "ownerId": "11111111-1111-4111-8111-111111111111",
+  "entryId": "22222222-2222-4222-8222-222222222222",
+  "expectedNote": "Danas osje\u0107am sre\u0107u.\n\u010Citam, u\u010Dim i u\u017Eivam u ti\u0161ini. \u017Delim mir.",
+  "expectedEmotions": [
+    {
+      "emotionId": "44444444-4444-4444-8444-444444444444",
+      "isPrimary": true
+    },
+    {
+      "emotionId": "55555555-5555-4555-8555-555555555555",
+      "isPrimary": false
+    }
+  ],
+  "noteBundle": {
+    "keyId": "v1",
+    "nonce": "Zl77QNM1Kk6tZ\u002Bk7",
+    "ciphertext": "5JCSMs1oxIJE99/IyUC1rlzAeTtVyBpwVB33KU6gMQqXsE\u002BZmSe3xkdTHuU2zU\u002BVblYcYKK\u002BzVm3dzlE2/gybss7Mswfi9g6lZLIPI8PUvkIj5VsPOCx9mGMzDbYq1\u002B6bF3sXg==",
+    "authTag": "VlGVzgVJK3exAKTvmkapyQ=="
+  },
+  "emotionsBundle": {
+    "keyId": "v1",
+    "nonce": "0inenyBWEzYyl7oK",
+    "ciphertext": "NMprTUeJG/nMFFzLCXbgWuM010OCDbhbkT/FniNIz/4bLzhk6EDmh0kndOwXAyJR8KS0AM7srnQjOKFWYL/RZJMoiPOU9c5PNWglfU2PUc1ZGCsI8d8UxlYpy7eFGCHy20m74p3UAnJNVLQ3QBPeQWJZteB3fURB9arYePLIEB93jkqdb3zmTs\u002BJsQrNIA==",
+    "authTag": "MwDp0PspzGuEjp5fd6RxRw=="
+  }
+}

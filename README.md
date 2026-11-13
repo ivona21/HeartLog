@@ -42,6 +42,11 @@ Production reads the entry key from a secret file rather than `.env`.
 - `tools/HeartLog.EntryMigration`: explicit backfill, inspection, key checks, and verification.
 - `tools/HeartLog.EntryProfile`: explicit read-only profiling with timing/count logs.
 
-Tools do not run during normal API startup. The temporary implementation test
-project was removed; a dedicated test suite is planned separately. Generated
-`bin/` and `obj/` files and secret configuration remain ignored by Git.
+Tools do not run during normal API startup. Generated `bin/` and `obj/` files and
+secret configuration remain ignored by Git.
+
+## Tests and CI
+
+See the [test README](tests/HeartLog.Api.IntegrationTests/README.md) for local unit
+and isolated PostgreSQL commands, test configuration, and GitHub Actions logs.
+Pull requests run **Backend unit tests** and **Backend PostgreSQL tests**.
