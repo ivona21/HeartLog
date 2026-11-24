@@ -95,7 +95,6 @@ internal sealed class PostgresTestHost : IAsyncDisposable
             {
                 foreach (var id in new[] { Owner, Other })
                     db.AgreementEvents.Add(new AgreementEvent { UserId = id, AgreementKey = HeartLog.BLL.Models.Agreements.AgreementCatalog.JournalProcessing,
-                        Version = HeartLog.BLL.Models.Agreements.AgreementCatalog.JournalProcessingVersion,
                         Action = "granted", Source = "test", OccurredAtUtc = DateTime.UtcNow, SubmissionId = Guid.NewGuid() });
                 await db.SaveChangesAsync();
             }
@@ -140,6 +139,7 @@ internal sealed class PostgresTestHost : IAsyncDisposable
         builder.Services.AddScoped<IEmotionEntryService, EmotionEntryService>();
         builder.Services.AddScoped<HeartLog.Api.Services.RegistrationAgreementService>();
         builder.Services.AddScoped<HeartLog.Api.Services.JournalConsentFilter>();
+        builder.Services.AddScoped<HeartLog.Api.Services.JournalConsentService>();
         builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
         builder.Services.AddScoped<IUserRepository, UserRepository>();
         builder.Services.AddScoped<IEmotionsRepository, EmotionsRepository>();

@@ -70,6 +70,10 @@ namespace HeartLog.DAL.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
 
+                    b.Property<string>("Statement")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
                     b.Property<Guid>("SubmissionId")
                         .HasColumnType("uuid");
 
@@ -77,7 +81,6 @@ namespace HeartLog.DAL.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<string>("Version")
-                        .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
 
@@ -239,11 +242,6 @@ namespace HeartLog.DAL.Migrations
 
                     b.Property<DateTime>("ExpiresAtUtc")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("JournalProcessingVersion")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
 
                     b.Property<string>("PrivacyPolicyVersion")
                         .IsRequired()

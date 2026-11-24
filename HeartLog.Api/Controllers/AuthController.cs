@@ -25,19 +25,22 @@ public class AuthController : ControllerBase
     private readonly IHostEnvironment _environment;
     private readonly IConfiguration _configuration;
     private readonly RegistrationAgreementService _registrationAgreements;
+    private readonly JournalConsentService _journalConsent;
 
     public AuthController(
         IUserService userService,
         ICurrentUserService currentUserService,
         IHostEnvironment environment,
         IConfiguration configuration,
-        RegistrationAgreementService registrationAgreements)
+        RegistrationAgreementService registrationAgreements,
+        JournalConsentService journalConsent)
     {
         _userService = userService;
         _currentUserService = currentUserService;
         _environment = environment;
         _configuration = configuration;
         _registrationAgreements = registrationAgreements;
+        _journalConsent = journalConsent;
     }
 
     [AllowAnonymous]
@@ -349,11 +352,12 @@ public class AuthController : ControllerBase
     public async Task<ActionResult<ApiResponse<UserMeResponseDto>>> GetCurrentUser()
     {
         var currentUser = await _currentUserService.GetCurrentUserAsync(User);
-
+        var response = UserMapper.ToDto(currentUser);
+        response.JournalConsent.Status = await _journalConsent.GetStatusAsync(currentUser.Id, HttpContext.RequestAborted);
         return Ok(new ApiResponse<UserMeResponseDto>(
             Success: true,
             Message: "Current user retrieved successfully",
-            Data: UserMapper.ToDto(currentUser)));
+            Data: response));
     }
 
     [Authorize]

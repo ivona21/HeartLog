@@ -98,6 +98,7 @@ builder.Services.AddScoped<EmotionSeeder>();
 builder.Services.AddScoped<IExternalAuthService, SupabaseAuthService>();
 builder.Services.AddScoped<HeartLog.Api.Services.RegistrationAgreementService>();
 builder.Services.AddScoped<HeartLog.Api.Services.JournalConsentFilter>();
+builder.Services.AddScoped<HeartLog.Api.Services.JournalConsentService>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>

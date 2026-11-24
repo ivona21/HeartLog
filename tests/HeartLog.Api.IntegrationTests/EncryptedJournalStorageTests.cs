@@ -170,7 +170,6 @@ public sealed class EncryptedJournalStorageTests
         {
             db.AgreementEvents.Add(new HeartLog.DAL.Models.AgreementEvent { UserId = PostgresTestHost.Owner,
                 AgreementKey = HeartLog.BLL.Models.Agreements.AgreementCatalog.JournalProcessing,
-                Version = HeartLog.BLL.Models.Agreements.AgreementCatalog.JournalProcessingVersion,
                 Action = "granted", Source = "test", OccurredAtUtc = DateTime.UtcNow, SubmissionId = Guid.NewGuid() });
             await db.SaveChangesAsync();
         }

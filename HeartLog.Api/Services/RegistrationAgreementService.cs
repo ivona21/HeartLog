@@ -15,10 +15,9 @@ public sealed class RegistrationAgreementService(
     ApplicationDbContext db, IExternalAuthService provider, IUserRepository users)
 {
     public static bool Valid(RegistrationAgreements? a) => a is not null &&
-        a.TermsAccepted && a.PrivacyPolicyAcknowledged && a.JournalProcessingConsent &&
+        a.TermsAccepted && a.PrivacyPolicyAcknowledged &&
         AgreementCatalog.IsCurrent(AgreementCatalog.Terms, a.TermsVersion) &&
-        AgreementCatalog.IsCurrent(AgreementCatalog.PrivacyPolicy, a.PrivacyPolicyVersion) &&
-        AgreementCatalog.IsCurrent(AgreementCatalog.JournalProcessing, a.JournalProcessingVersion);
+        AgreementCatalog.IsCurrent(AgreementCatalog.PrivacyPolicy, a.PrivacyPolicyVersion);
 
     public async Task<ExternalAuthRegistrationResult> RegisterAsync(string email, string password, RegistrationAgreements agreements)
     {
@@ -29,7 +28,6 @@ public sealed class RegistrationAgreementService(
         {
             TokenHash = Hash(token), TermsVersion = agreements.TermsVersion,
             PrivacyPolicyVersion = agreements.PrivacyPolicyVersion,
-            JournalProcessingVersion = agreements.JournalProcessingVersion,
             SubmittedAtUtc = now, ExpiresAtUtc = now.AddDays(7)
         };
         db.RegistrationIntents.Add(intent);
@@ -59,8 +57,7 @@ public sealed class RegistrationAgreementService(
             db.AgreementEvents.AddRange(new[]
             {
                 Create(AgreementCatalog.Terms, intent.TermsVersion, "accepted"),
-                Create(AgreementCatalog.PrivacyPolicy, intent.PrivacyPolicyVersion, "acknowledged"),
-                Create(AgreementCatalog.JournalProcessing, intent.JournalProcessingVersion, "granted")
+                Create(AgreementCatalog.PrivacyPolicy, intent.PrivacyPolicyVersion, "acknowledged")
             });
             await db.SaveChangesAsync(cancellationToken);
             AgreementEvent Create(string key, string version, string action) => new()

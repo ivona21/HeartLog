@@ -21,8 +21,6 @@ public sealed class RegistrationAgreements
 {
     public bool TermsAccepted { get; set; }
     public bool PrivacyPolicyAcknowledged { get; set; }
-    public bool JournalProcessingConsent { get; set; }
     public string TermsVersion { get; set; } = string.Empty;
     public string PrivacyPolicyVersion { get; set; } = string.Empty;
-    public string JournalProcessingVersion { get; set; } = string.Empty;
 }

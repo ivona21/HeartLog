@@ -6,7 +6,8 @@ public class AgreementEvent
     public Guid UserId { get; set; }
     public User User { get; set; } = null!;
     public string AgreementKey { get; set; } = string.Empty;
-    public string Version { get; set; } = string.Empty;
+    public string? Version { get; set; }
+    public string? Statement { get; set; }
     public string Action { get; set; } = string.Empty;
     public string Source { get; set; } = string.Empty;
     public DateTime OccurredAtUtc { get; set; }

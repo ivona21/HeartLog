@@ -16,7 +16,7 @@ public sealed class AuthenticationLifecycleTests
     private const string Email = "new-account@example.invalid";
 
     [PostgresFact]
-    public async Task SignupIntent_IsConsumedForVerifiedUserOnceAndUnlocksJournal()
+    public async Task SignupIntent_RecordsOnlyTermsAndPrivacyForVerifiedUserOnce()
     {
         await using var provider = await ScriptedSupabase.StartAsync();
         await using var host = await PostgresTestHost.CreateAsync(withAgreements: false);
@@ -24,8 +24,8 @@ public sealed class AuthenticationLifecycleTests
         using var client = host.Client(Guid.NewGuid());
         client.DefaultRequestHeaders.Remove("X-Test-Subject");
         var id = Guid.NewGuid();
-        var agreements = new { termsAccepted = true, privacyPolicyAcknowledged = true, journalProcessingConsent = true,
-            termsVersion = "2026-11-23", privacyPolicyVersion = "2026-11-23", journalProcessingVersion = "2026-11-23" };
+        var agreements = new { termsAccepted = true, privacyPolicyAcknowledged = true,
+            termsVersion = "2026-11-23", privacyPolicyVersion = "2026-11-23" };
         provider.Reply("POST", "/auth/v1/signup", body: new { id, email = Email, email_confirmed_at = (string?)null });
         using var signup = await client.PostAsJsonAsync($"{Route}/register", new { email = Email, password = ScriptedSupabase.Password, agreements });
         Assert.Equal(HttpStatusCode.OK, signup.StatusCode);
@@ -44,16 +44,16 @@ public sealed class AuthenticationLifecycleTests
         provider.Reply("GET", "/auth/v1/user", body: new { id, email = Email, user_metadata = new { heartlog_registration_intent = intent } });
         using var login = await client.PostAsJsonAsync($"{Route}/login", new { email = Email, password = ScriptedSupabase.Password });
         Assert.Equal(HttpStatusCode.OK, login.StatusCode);
-        Assert.Equal(3L, await host.ScalarAsync("SELECT count(*) FROM \"AgreementEvents\" e JOIN \"Users\" u ON u.\"Id\"=e.\"UserId\" WHERE u.\"SupabaseUserId\"=@id", ("id", id)));
+        Assert.Equal(2L, await host.ScalarAsync("SELECT count(*) FROM \"AgreementEvents\" e JOIN \"Users\" u ON u.\"Id\"=e.\"UserId\" WHERE u.\"SupabaseUserId\"=@id", ("id", id)));
         client.DefaultRequestHeaders.Add("X-Test-Subject", id.ToString());
         using var entries = await client.GetAsync("/api/emotion-entries");
-        Assert.Equal(HttpStatusCode.OK, entries.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, entries.StatusCode);
         provider.Reply("POST", "/auth/v1/token?grant_type=password", body: ScriptedSupabase.Session(id, Email));
         provider.Reply("GET", "/auth/v1/user", body: ScriptedSupabase.User(id, Email));
         provider.Reply("GET", "/auth/v1/user", body: new { id, email = Email, user_metadata = new { heartlog_registration_intent = intent } });
         using var second = await client.PostAsJsonAsync($"{Route}/login", new { email = Email, password = ScriptedSupabase.Password });
         Assert.Equal(HttpStatusCode.OK, second.StatusCode);
-        Assert.Equal(3L, await host.ScalarAsync("SELECT count(*) FROM \"AgreementEvents\" e JOIN \"Users\" u ON u.\"Id\"=e.\"UserId\" WHERE u.\"SupabaseUserId\"=@id", ("id", id)));
+        Assert.Equal(2L, await host.ScalarAsync("SELECT count(*) FROM \"AgreementEvents\" e JOIN \"Users\" u ON u.\"Id\"=e.\"UserId\" WHERE u.\"SupabaseUserId\"=@id", ("id", id)));
         provider.AssertComplete();
     }
 
@@ -156,8 +156,8 @@ public sealed class AuthenticationLifecycleTests
         await host.StartAsync(provider.Configure);
         using var client = host.Client(PostgresTestHost.Owner);
         client.DefaultRequestHeaders.Remove("X-Test-Subject");
-        var agreements = new { termsAccepted = true, privacyPolicyAcknowledged = true, journalProcessingConsent = true,
-            termsVersion = "2026-11-23", privacyPolicyVersion = "2026-11-23", journalProcessingVersion = "2026-11-23" };
+        var agreements = new { termsAccepted = true, privacyPolicyAcknowledged = true,
+            termsVersion = "2026-11-23", privacyPolicyVersion = "2026-11-23" };
         provider.Reply("POST", "/auth/v1/signup", body: new { id = Guid.NewGuid(), email = Email, email_confirmed_at = (string?)null });
         using var signup = await client.PostAsJsonAsync($"{Route}/register", new { email = Email, password = ScriptedSupabase.Password, agreements });
         Assert.Equal(HttpStatusCode.OK, signup.StatusCode);

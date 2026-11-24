@@ -8,7 +8,6 @@ public static class AgreementCatalog
     public const string JournalProcessing = "journalProcessing";
     public const string TermsVersion = "2026-11-23";
     public const string PrivacyPolicyVersion = "2026-11-23";
-    public const string JournalProcessingVersion = "2026-11-23";
 
     public const string TermsUrl = "https://heartlog.me/terms";
     public const string PrivacyPolicyUrl = "https://heartlog.me/privacy-policy";
@@ -19,8 +18,7 @@ public static class AgreementCatalog
     public static readonly IReadOnlyList<AgreementRequirement> Requirements = Array.AsReadOnly<AgreementRequirement>(
     [
         new(Terms, TermsVersion, TermsUrl, TermsStatement),
-        new(PrivacyPolicy, PrivacyPolicyVersion, PrivacyPolicyUrl, TermsStatement),
-        new(JournalProcessing, JournalProcessingVersion, null, JournalStatement)
+        new(PrivacyPolicy, PrivacyPolicyVersion, PrivacyPolicyUrl, TermsStatement)
     ]);
 
     public static bool IsCurrent(string key, string version) =>
