@@ -1,6 +1,7 @@
 using HeartLog.Api.DTOs;
 using HeartLog.Api.Mappers;
 using HeartLog.BLL.Interfaces;
+using HeartLog.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
@@ -9,6 +10,7 @@ namespace HeartLog.Api.Controllers;
 
 [ApiController]
 [Authorize]
+[ServiceFilter(typeof(JournalConsentFilter))]
 [Route("api/emotion-entries")]
 [Produces("application/json")]
 [SwaggerTag("Authenticated emotion entry endpoints.")]

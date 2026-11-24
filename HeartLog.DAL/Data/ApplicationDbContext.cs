@@ -15,6 +15,10 @@ public class ApplicationDbContext: DbContext
     public DbSet<AccountDeletion> AccountDeletions { get; set; } = null!;
 
     public DbSet<User> Users { get; set; } = null!;
+
+    public DbSet<AgreementEvent> AgreementEvents { get; set; } = null!;
+
+    public DbSet<RegistrationIntent> RegistrationIntents { get; set; } = null!;
     
     public DbSet<Emotion> Emotions { get; set; } = null!;
     
@@ -29,6 +33,8 @@ public class ApplicationDbContext: DbContext
         modelBuilder.ApplyConfiguration(new AccountDeletionConfiguration());
         modelBuilder.ApplyConfiguration(new EmailOutboxMessageConfiguration());
         modelBuilder.ApplyConfiguration(new UserConfiguration());
+        modelBuilder.ApplyConfiguration(new AgreementEventConfiguration());
+        modelBuilder.ApplyConfiguration(new RegistrationIntentConfiguration());
         modelBuilder.ApplyConfiguration(new EmotionConfiguration());
         modelBuilder.ApplyConfiguration(new EmotionTranslationConfiguration());
         modelBuilder.ApplyConfiguration(new EmotionEntryConfiguration());

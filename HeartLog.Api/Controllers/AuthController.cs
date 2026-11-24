@@ -1,6 +1,7 @@
 using HeartLog.Api.Auth;
 using HeartLog.Api.DTOs;
 using HeartLog.Api.Mappers;
+using HeartLog.Api.Services;
 using HeartLog.BLL.Exceptions;
 using HeartLog.BLL.Interfaces;
 using HeartLog.BLL.Models.Auth;
@@ -23,17 +24,20 @@ public class AuthController : ControllerBase
     private readonly ICurrentUserService _currentUserService;
     private readonly IHostEnvironment _environment;
     private readonly IConfiguration _configuration;
+    private readonly RegistrationAgreementService _registrationAgreements;
 
     public AuthController(
         IUserService userService,
         ICurrentUserService currentUserService,
         IHostEnvironment environment,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        RegistrationAgreementService registrationAgreements)
     {
         _userService = userService;
         _currentUserService = currentUserService;
         _environment = environment;
         _configuration = configuration;
+        _registrationAgreements = registrationAgreements;
     }
 
     [AllowAnonymous]
@@ -46,8 +50,10 @@ public class AuthController : ControllerBase
     [SwaggerOperation(OperationId = "Auth_Register")]
     public async Task<ActionResult<ApiResponse<AuthRegistrationResponseDto>>> Register([FromBody] UserRegisterDto userDto)
     {
-        User user = UserMapper.ToEntity(userDto);
-        var registration = await _userService.RegisterUserAsync(user, userDto.Password);
+        if (!RegistrationAgreementService.Valid(userDto.Agreements))
+            return BadRequest(new ErrorResponse { Code = ApiErrorCode.ValidationFailed,
+                Message = "Both agreements and current versions are required." });
+        var registration = await _registrationAgreements.RegisterAsync(userDto.Email, userDto.Password, userDto.Agreements!);
 
         return Ok(new ApiResponse<AuthRegistrationResponseDto>(
             Success: true,
@@ -255,6 +261,8 @@ public class AuthController : ControllerBase
     public async Task<ActionResult<ApiResponse<AuthSessionResponseDto>>> Login([FromBody] UserLoginDto userDto)
     {
         var session = await _userService.LoginUserAsync(userDto.Email, userDto.Password);
+
+        await _registrationAgreements.ConsumeAsync(session, HttpContext.RequestAborted);
 
         SetRefreshTokenCookie(session);
 

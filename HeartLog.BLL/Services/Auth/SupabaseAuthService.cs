@@ -81,14 +81,25 @@ public class SupabaseAuthService : IExternalAuthService
         await CreateClientAsync();
     }
 
-    public async Task<ExternalAuthRegistrationResult> RegisterAsync(string email, string password)
+    public Task<ExternalAuthRegistrationResult> RegisterAsync(string email, string password) =>
+        RegisterCoreAsync(email, password, null);
+
+    public Task<ExternalAuthRegistrationResult> RegisterWithIntentAsync(string email, string password, string intentToken) =>
+        RegisterCoreAsync(email, password, intentToken);
+
+    private async Task<ExternalAuthRegistrationResult> RegisterCoreAsync(string email, string password, string? intentToken)
     {
         try
         {
             var client = await CreateClientAsync();
-            await client.Auth.SignUp(email, password);
+            var options = intentToken is null ? null : new Supabase.Gotrue.SignUpOptions
+            {
+                Data = new Dictionary<string, object> { ["heartlog_registration_intent"] = intentToken }
+            };
+            var signup = await client.Auth.SignUp(email, password, options);
 
-            return ToRegistrationResult(email);
+            var providerId = Guid.TryParse(signup?.User?.Id, out var id) ? id : (Guid?)null;
+            return ToRegistrationResult(email, providerId);
         }
         catch (GotrueException ex) when (IsDuplicateRegistrationFailure(ex))
         {
@@ -106,11 +117,28 @@ public class SupabaseAuthService : IExternalAuthService
         }
     }
 
-    private static ExternalAuthRegistrationResult ToRegistrationResult(string email)
+    public async Task<string?> GetRegistrationIntentAsync(string accessToken, Guid providerUserId, CancellationToken cancellationToken = default)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"{_settings.ProjectUrl.TrimEnd('/')}{AuthUserPath}");
+        request.Headers.Add("apikey", _settings.PublishableKey);
+        request.Headers.TryAddWithoutValidation("Authorization", $"Bearer {accessToken}");
+        using var response = await _httpClientFactory.CreateClient().SendAsync(request, cancellationToken);
+        if (!response.IsSuccessStatusCode) throw new ExternalAuthException("Unable to retrieve authentication provider user.");
+        using var json = await System.Text.Json.JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(cancellationToken), cancellationToken: cancellationToken);
+        if (!json.RootElement.TryGetProperty("id", out var id) || !Guid.TryParse(id.GetString(), out var actualId) || actualId != providerUserId)
+            throw new UnauthorizedAccessException("Authenticated user could not be resolved.");
+        if (json.RootElement.TryGetProperty("user_metadata", out var metadata) && metadata.ValueKind == System.Text.Json.JsonValueKind.Object &&
+            metadata.TryGetProperty("heartlog_registration_intent", out var token) && token.ValueKind == System.Text.Json.JsonValueKind.String)
+            return token.GetString();
+        return null;
+    }
+
+    private static ExternalAuthRegistrationResult ToRegistrationResult(string email, Guid? providerUserId = null)
     {
         return new ExternalAuthRegistrationResult
         {
-            Email = email
+            Email = email,
+            ProviderUserId = providerUserId
         };
     }
 

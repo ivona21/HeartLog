@@ -73,7 +73,7 @@ internal sealed class PostgresTestHost : IAsyncDisposable
         ConnectionString = connection.ConnectionString;
     }
 
-    public static async Task<PostgresTestHost> CreateAsync(bool legacy = false)
+    public static async Task<PostgresTestHost> CreateAsync(bool legacy = false, bool withAgreements = true)
     {
         var host = new PostgresTestHost();
         await using var admin = new NpgsqlConnection(host._adminConnection);
@@ -91,6 +91,14 @@ internal sealed class PostgresTestHost : IAsyncDisposable
                 new Emotion { Id = Calm, Key = "test-calm", Level = EmotionLevel.Core },
                 new Emotion { Id = Hope, Key = "test-hope", Level = EmotionLevel.Core });
             await db.SaveChangesAsync();
+            if (!legacy && withAgreements)
+            {
+                foreach (var id in new[] { Owner, Other })
+                    db.AgreementEvents.Add(new AgreementEvent { UserId = id, AgreementKey = HeartLog.BLL.Models.Agreements.AgreementCatalog.JournalProcessing,
+                        Version = HeartLog.BLL.Models.Agreements.AgreementCatalog.JournalProcessingVersion,
+                        Action = "granted", Source = "test", OccurredAtUtc = DateTime.UtcNow, SubmissionId = Guid.NewGuid() });
+                await db.SaveChangesAsync();
+            }
             return host;
         }
         catch
@@ -130,6 +138,8 @@ internal sealed class PostgresTestHost : IAsyncDisposable
         builder.Services.AddDbContext<ApplicationDbContext>(o => o.UseNpgsql(ConnectionString));
         builder.Services.AddSingleton(new EntryEncryption(Key));
         builder.Services.AddScoped<IEmotionEntryService, EmotionEntryService>();
+        builder.Services.AddScoped<HeartLog.Api.Services.RegistrationAgreementService>();
+        builder.Services.AddScoped<HeartLog.Api.Services.JournalConsentFilter>();
         builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
         builder.Services.AddScoped<IUserRepository, UserRepository>();
         builder.Services.AddScoped<IEmotionsRepository, EmotionsRepository>();

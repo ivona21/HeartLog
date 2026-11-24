@@ -8,6 +8,10 @@ public interface IExternalAuthService
     Task ValidateSessionAsync(string accessToken, CancellationToken cancellationToken = default);
     Task TestConnectionAsync();
     Task<ExternalAuthRegistrationResult> RegisterAsync(string email, string password);
+    Task<ExternalAuthRegistrationResult> RegisterWithIntentAsync(string email, string password, string intentToken) =>
+        throw new NotSupportedException();
+    Task<string?> GetRegistrationIntentAsync(string accessToken, Guid providerUserId, CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException();
     Task<ExternalAuthEmailConfirmationResult> ConfirmEmailAsync(string tokenHash, string type);
     Task ResendConfirmationAsync(string email);
     Task SendPasswordResetAsync(string email);
