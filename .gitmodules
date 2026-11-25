@@ -1,0 +1,3 @@
+[submodule "shared/heartlog-legal"]
+	path = shared/heartlog-legal
+	url = git@github.com:ivona21/heartlog-legal.git
