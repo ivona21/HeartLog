@@ -30,8 +30,22 @@ HeartLog identity; use `GET /api/auth/me`.
 `POST /api/auth/register` accepts:
 
 ```json
-{ "email": "user@example.com", "password": "StrongPass123!" }
+{
+  "email": "user@example.com",
+  "password": "StrongPass123!",
+  "agreements": {
+    "termsAccepted": true,
+    "privacyPolicyAcknowledged": true,
+    "termsVersion": "draft-v1",
+    "termsHash": "<manifest documents.terms.sha256>",
+    "privacyPolicyVersion": "draft-v1",
+    "privacyPolicyHash": "<manifest documents.privacy.sha256>"
+  }
+}
 ```
+
+Journal consent is requested separately when the user first saves an entry. See
+[Agreement flow](agreements.md) for the consent endpoint and `/api/auth/me` status.
 
 The response is a pending-confirmation result:
 

@@ -16,6 +16,61 @@ public sealed class AuthenticationLifecycleTests
     private const string Email = "new-account@example.invalid";
 
     [PostgresFact]
+    public async Task SignupIntent_RecordsOnlyTermsAndPrivacyForVerifiedUserOnce()
+    {
+        await using var provider = await ScriptedSupabase.StartAsync();
+        await using var host = await PostgresTestHost.CreateAsync(withAgreements: false);
+        await host.StartAsync(provider.Configure);
+        using var client = host.Client(Guid.NewGuid());
+        client.DefaultRequestHeaders.Remove("X-Test-Subject");
+        var id = Guid.NewGuid();
+        var legal = PostgresTestHost.Legal;
+        var agreements = new { termsAccepted = true, privacyPolicyAcknowledged = true,
+            termsVersion = legal.Terms.Version, privacyPolicyVersion = legal.Privacy.Version,
+            termsHash = legal.Terms.Sha256, privacyPolicyHash = legal.Privacy.Sha256 };
+        using var outdated = await client.PostAsJsonAsync($"{Route}/register", new { email = Email, password = ScriptedSupabase.Password,
+            agreements = new { termsAccepted = true, privacyPolicyAcknowledged = true,
+                termsVersion = "2026-11-23", privacyPolicyVersion = "2026-11-23" } });
+        Assert.Equal(HttpStatusCode.Conflict, outdated.StatusCode);
+        Assert.Equal("legal_content_outdated", (await Json(outdated))["code"]!.GetValue<string>());
+        Assert.Empty(provider.Calls);
+        using var badHash = await client.PostAsJsonAsync($"{Route}/register", new { email = Email, password = ScriptedSupabase.Password,
+            agreements = new { termsAccepted = true, privacyPolicyAcknowledged = true, termsVersion = legal.Terms.Version, privacyPolicyVersion = legal.Privacy.Version,
+                termsHash = new string('0', 64), privacyPolicyHash = legal.Privacy.Sha256 } });
+        Assert.Equal(HttpStatusCode.Conflict, badHash.StatusCode);
+        Assert.Empty(provider.Calls);
+        provider.Reply("POST", "/auth/v1/signup", body: new { id, email = Email, email_confirmed_at = (string?)null });
+        using var signup = await client.PostAsJsonAsync($"{Route}/register", new { email = Email, password = ScriptedSupabase.Password, agreements });
+        Assert.Equal(HttpStatusCode.OK, signup.StatusCode);
+        var signupBody = ScriptedSupabase.Json(provider.Calls.Last().Body);
+        var intent = signupBody.GetProperty("data").GetProperty("heartlog_registration_intent").GetString();
+        Assert.NotNull(intent);
+        var attacker = Guid.NewGuid();
+        provider.Reply("POST", "/auth/v1/token?grant_type=password", body: ScriptedSupabase.Session(attacker, "attacker@example.invalid"));
+        provider.Reply("GET", "/auth/v1/user", body: ScriptedSupabase.User(attacker, "attacker@example.invalid"));
+        provider.Reply("GET", "/auth/v1/user", body: new { id = attacker, user_metadata = new { heartlog_registration_intent = intent } });
+        using var stolen = await client.PostAsJsonAsync($"{Route}/login", new { email = "attacker@example.invalid", password = ScriptedSupabase.Password });
+        Assert.Equal(HttpStatusCode.OK, stolen.StatusCode);
+        Assert.Equal(0L, await host.ScalarAsync("SELECT count(*) FROM \"AgreementEvents\""));
+        provider.Reply("POST", "/auth/v1/token?grant_type=password", body: ScriptedSupabase.Session(id, Email));
+        provider.Reply("GET", "/auth/v1/user", body: ScriptedSupabase.User(id, Email));
+        provider.Reply("GET", "/auth/v1/user", body: new { id, email = Email, user_metadata = new { heartlog_registration_intent = intent } });
+        using var login = await client.PostAsJsonAsync($"{Route}/login", new { email = Email, password = ScriptedSupabase.Password });
+        Assert.Equal(HttpStatusCode.OK, login.StatusCode);
+        Assert.Equal(2L, await host.ScalarAsync("SELECT count(*) FROM \"AgreementEvents\" e JOIN \"Users\" u ON u.\"Id\"=e.\"UserId\" WHERE u.\"SupabaseUserId\"=@id", ("id", id)));
+        client.DefaultRequestHeaders.Add("X-Test-Subject", id.ToString());
+        using var entries = await client.GetAsync("/api/emotion-entries");
+        Assert.Equal(HttpStatusCode.Forbidden, entries.StatusCode);
+        provider.Reply("POST", "/auth/v1/token?grant_type=password", body: ScriptedSupabase.Session(id, Email));
+        provider.Reply("GET", "/auth/v1/user", body: ScriptedSupabase.User(id, Email));
+        provider.Reply("GET", "/auth/v1/user", body: new { id, email = Email, user_metadata = new { heartlog_registration_intent = intent } });
+        using var second = await client.PostAsJsonAsync($"{Route}/login", new { email = Email, password = ScriptedSupabase.Password });
+        Assert.Equal(HttpStatusCode.OK, second.StatusCode);
+        Assert.Equal(2L, await host.ScalarAsync("SELECT count(*) FROM \"AgreementEvents\" e JOIN \"Users\" u ON u.\"Id\"=e.\"UserId\" WHERE u.\"SupabaseUserId\"=@id", ("id", id)));
+        provider.AssertComplete();
+    }
+
+    [PostgresFact]
     public async Task Login_ProvisionsUser_MeResolvesThem_RefreshRotatesCookie_LogoutClearsIt()
     {
         await using var provider = await ScriptedSupabase.StartAsync();
@@ -25,6 +80,7 @@ public sealed class AuthenticationLifecycleTests
         using var client = host.Client(id);
         client.DefaultRequestHeaders.Remove("X-Test-Subject");
         provider.Reply("POST", "/auth/v1/token?grant_type=password", body: ScriptedSupabase.Session(id, Email));
+        provider.Reply("GET", "/auth/v1/user", body: ScriptedSupabase.User(id, Email));
         provider.Reply("GET", "/auth/v1/user", body: ScriptedSupabase.User(id, Email));
         using var login = await client.PostAsJsonAsync($"{Route}/login", new { email = Email, password = ScriptedSupabase.Password });
         Assert.Equal(HttpStatusCode.OK, login.StatusCode);
@@ -113,8 +169,12 @@ public sealed class AuthenticationLifecycleTests
         await host.StartAsync(provider.Configure);
         using var client = host.Client(PostgresTestHost.Owner);
         client.DefaultRequestHeaders.Remove("X-Test-Subject");
+        var legal = PostgresTestHost.Legal;
+        var agreements = new { termsAccepted = true, privacyPolicyAcknowledged = true,
+            termsVersion = legal.Terms.Version, privacyPolicyVersion = legal.Privacy.Version,
+            termsHash = legal.Terms.Sha256, privacyPolicyHash = legal.Privacy.Sha256 };
         provider.Reply("POST", "/auth/v1/signup", body: new { id = Guid.NewGuid(), email = Email, email_confirmed_at = (string?)null });
-        using var signup = await client.PostAsJsonAsync($"{Route}/register", new { email = Email, password = ScriptedSupabase.Password });
+        using var signup = await client.PostAsJsonAsync($"{Route}/register", new { email = Email, password = ScriptedSupabase.Password, agreements });
         Assert.Equal(HttpStatusCode.OK, signup.StatusCode);
         var first = await Json(signup);
         Assert.Equal(Email, first["data"]!["email"]!.GetValue<string>());
@@ -122,7 +182,7 @@ public sealed class AuthenticationLifecycleTests
         Assert.False(signup.Headers.Contains("Set-Cookie"));
         provider.Reply("POST", "/auth/v1/signup", 422, ScriptedSupabase.Error("User already registered", "user_already_exists"));
         provider.Reply("POST", "/auth/v1/resend", 422);
-        using var duplicate = await client.PostAsJsonAsync($"{Route}/register", new { email = Email, password = ScriptedSupabase.Password });
+        using var duplicate = await client.PostAsJsonAsync($"{Route}/register", new { email = Email, password = ScriptedSupabase.Password, agreements });
         Assert.Equal(HttpStatusCode.OK, duplicate.StatusCode);
         Assert.Equal(first.ToJsonString(), (await Json(duplicate)).ToJsonString());
         Assert.False(duplicate.Headers.Contains("Set-Cookie"));
@@ -131,7 +191,7 @@ public sealed class AuthenticationLifecycleTests
         using var invalid = await client.PostAsJsonAsync($"{Route}/register", new { email = "bad", password = "weak" });
         Assert.Equal(HttpStatusCode.BadRequest, invalid.StatusCode);
         provider.Reply("POST", "/auth/v1/signup", 500, ScriptedSupabase.Error("Synthetic provider outage", "unexpected_failure"));
-        using var outage = await client.PostAsJsonAsync($"{Route}/register", new { email = Email, password = ScriptedSupabase.Password });
+        using var outage = await client.PostAsJsonAsync($"{Route}/register", new { email = Email, password = ScriptedSupabase.Password, agreements });
         Assert.Equal(HttpStatusCode.ServiceUnavailable, outage.StatusCode);
         provider.AssertComplete();
     }

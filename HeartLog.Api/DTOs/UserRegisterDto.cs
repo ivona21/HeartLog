@@ -12,4 +12,17 @@ public class UserRegisterDto
     [Required]
     [PasswordComplexity(MinimumLength = ValidationConstants.PasswordMinimumLength)]
     public string Password { get; set; } = string.Empty;
+
+    [Required]
+    public RegistrationAgreements? Agreements { get; set; }
+}
+
+public sealed class RegistrationAgreements
+{
+    public bool TermsAccepted { get; set; }
+    public bool PrivacyPolicyAcknowledged { get; set; }
+    public string TermsVersion { get; set; } = string.Empty;
+    public string PrivacyPolicyVersion { get; set; } = string.Empty;
+    public string TermsHash { get; set; } = string.Empty;
+    public string PrivacyPolicyHash { get; set; } = string.Empty;
 }

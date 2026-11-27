@@ -53,6 +53,9 @@ internal sealed class PostgresTestHost : IAsyncDisposable
     public static readonly Guid Calm = Guid.Parse("55555555-5555-4555-8555-555555555555");
     public static readonly Guid Hope = Guid.Parse("66666666-6666-4666-8666-666666666666");
     public const string Key = "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=";
+    public static HeartLog.BLL.Models.Agreements.LegalRelease Legal => HeartLog.BLL.Models.Agreements.LegalReleaseLoader.Load(
+        Path.Combine(AppContext.BaseDirectory, "legal", "legal-release.json"),
+        Path.Combine(AppContext.BaseDirectory, "legal", "shared"), false);
     private readonly string _adminConnection;
     private readonly string _database = "heartlog_integration_" + Guid.NewGuid().ToString("N");
     private WebApplication? _app;
@@ -73,7 +76,7 @@ internal sealed class PostgresTestHost : IAsyncDisposable
         ConnectionString = connection.ConnectionString;
     }
 
-    public static async Task<PostgresTestHost> CreateAsync(bool legacy = false)
+    public static async Task<PostgresTestHost> CreateAsync(bool legacy = false, bool withAgreements = true)
     {
         var host = new PostgresTestHost();
         await using var admin = new NpgsqlConnection(host._adminConnection);
@@ -91,6 +94,13 @@ internal sealed class PostgresTestHost : IAsyncDisposable
                 new Emotion { Id = Calm, Key = "test-calm", Level = EmotionLevel.Core },
                 new Emotion { Id = Hope, Key = "test-hope", Level = EmotionLevel.Core });
             await db.SaveChangesAsync();
+            if (!legacy && withAgreements)
+            {
+                foreach (var id in new[] { Owner, Other })
+                    db.AgreementEvents.Add(new AgreementEvent { UserId = id, AgreementKey = HeartLog.BLL.Models.Agreements.AgreementCatalog.JournalProcessing,
+                        Action = "granted", Source = "test", OccurredAtUtc = DateTime.UtcNow, SubmissionId = Guid.NewGuid() });
+                await db.SaveChangesAsync();
+            }
             return host;
         }
         catch
@@ -111,14 +121,14 @@ internal sealed class PostgresTestHost : IAsyncDisposable
 
     public IServiceProvider Services => _app!.Services;
 
-    public async Task StartAsync(Action<IServiceCollection>? configure = null)
+    public async Task StartAsync(Action<IServiceCollection>? configure = null, bool allowLegacy = false)
     {
         // Compose the real request path without executing Program.cs: no .env, external
         // identity provider, mail workers, production secrets, or production connection.
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions { EnvironmentName = "Testing" });
         builder.Configuration.Sources.Clear();
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
-        { ["Frontend:BaseUrl"] = "https://frontend.example.invalid/" });
+        { ["Frontend:BaseUrl"] = "https://frontend.example.invalid/", ["Legal:AllowLegacyClients"] = allowLegacy.ToString() });
         builder.WebHost.UseTestServer();
         builder.Logging.ClearProviders();
         builder.Logging.AddProvider(Logs);
@@ -128,8 +138,12 @@ internal sealed class PostgresTestHost : IAsyncDisposable
         builder.Services.AddControllers().AddApplicationPart(typeof(EmotionEntriesController).Assembly)
             .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase)));
         builder.Services.AddDbContext<ApplicationDbContext>(o => o.UseNpgsql(ConnectionString));
+        builder.Services.AddSingleton(Legal);
         builder.Services.AddSingleton(new EntryEncryption(Key));
         builder.Services.AddScoped<IEmotionEntryService, EmotionEntryService>();
+        builder.Services.AddScoped<HeartLog.Api.Services.RegistrationAgreementService>();
+        builder.Services.AddScoped<HeartLog.Api.Services.JournalConsentFilter>();
+        builder.Services.AddScoped<HeartLog.Api.Services.JournalConsentService>();
         builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
         builder.Services.AddScoped<IUserRepository, UserRepository>();
         builder.Services.AddScoped<IEmotionsRepository, EmotionsRepository>();

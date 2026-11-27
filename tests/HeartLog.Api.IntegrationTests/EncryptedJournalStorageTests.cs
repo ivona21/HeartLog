@@ -166,6 +166,13 @@ public sealed class EncryptedJournalStorageTests
         Assert.Contains("verified=1; legacy_schema=True", verification);
         Assert.DoesNotContain(Note, firstOutput + secondOutput + verification);
         await host.MigrateAsync();
+        await using (var db = host.CreateDb())
+        {
+            db.AgreementEvents.Add(new HeartLog.DAL.Models.AgreementEvent { UserId = PostgresTestHost.Owner,
+                AgreementKey = HeartLog.BLL.Models.Agreements.AgreementCatalog.JournalProcessing,
+                Action = "granted", Source = "test", OccurredAtUtc = DateTime.UtcNow, SubmissionId = Guid.NewGuid() });
+            await db.SaveChangesAsync();
+        }
         await AssertNoLegacyStorageAsync(host);
         await AssertStorageAsync(host, id, Note);
         var postCutover = await host.RunMigrationToolAsync("verify");

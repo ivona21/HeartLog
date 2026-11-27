@@ -24,6 +24,14 @@ using System.Text.Json.Serialization;
 DotNetEnv.Env.Load();
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddEnvironmentVariables();
+// Validate bundled legal bytes before migrations, background services, or requests.
+HeartLog.BLL.Models.Agreements.LegalReleaseLoader.VerifyHistoricalSnapshots(
+    Path.Combine(AppContext.BaseDirectory, "legal", "history"));
+var legalRelease = HeartLog.BLL.Models.Agreements.LegalReleaseLoader.Load(
+    Path.Combine(AppContext.BaseDirectory, "legal", "legal-release.json"),
+    Path.Combine(AppContext.BaseDirectory, "legal", "shared"),
+    publicationReady: !builder.Environment.IsDevelopment());
+builder.Services.AddSingleton(legalRelease);
 // Construct before migrations or hosted services run: invalid/missing keys fail startup.
 var entryEncryption = new HeartLog.BLL.Services.Encryption.EntryEncryption(
     builder.Environment.IsDevelopment()
@@ -96,6 +104,9 @@ builder.Services.AddScoped<IEmotionsRepository, EmotionsRepository>();
 builder.Services.AddScoped<IEmotionEntriesRepository, EmotionEntriesRepository>();
 builder.Services.AddScoped<EmotionSeeder>();
 builder.Services.AddScoped<IExternalAuthService, SupabaseAuthService>();
+builder.Services.AddScoped<HeartLog.Api.Services.RegistrationAgreementService>();
+builder.Services.AddScoped<HeartLog.Api.Services.JournalConsentFilter>();
+builder.Services.AddScoped<HeartLog.Api.Services.JournalConsentService>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>

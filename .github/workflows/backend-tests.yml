@@ -1,6 +1,8 @@
 name: Backend tests
 
 on:
+  push:
+    branches: [feature/agree-to-terms]
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
@@ -27,11 +29,15 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+          submodules: recursive
+          token: ${{ secrets.HEARTLOG_LEGAL_READ_TOKEN }}
       - uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
       - name: Restore NuGet packages
         run: dotnet restore HeartLog.sln
+      - name: Verify selected draft legal release
+        run: dotnet run --project tools/HeartLog.LegalVerifier/HeartLog.LegalVerifier.csproj -- legal-release.json shared/heartlog-legal development docs/legal/snapshots
       - name: Run database-free tests
         run: >-
           dotnet test tests/HeartLog.BLL.Tests/HeartLog.BLL.Tests.csproj
@@ -76,6 +82,8 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+          submodules: recursive
+          token: ${{ secrets.HEARTLOG_LEGAL_READ_TOKEN }}
       - uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json

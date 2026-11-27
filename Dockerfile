@@ -3,15 +3,21 @@
 # -------------------------------
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
+ARG LEGAL_RELEASE_MODE=production
 
 # Copy everything
 COPY . .
 
 # Restore dependencies
 RUN dotnet restore HeartLog.sln
+RUN dotnet restore tools/HeartLog.LegalVerifier/HeartLog.LegalVerifier.csproj
+
+# The checkout must already contain the recorded submodule commit. The build
+# never fetches a branch or embeds credentials in an image layer.
+RUN dotnet run --project tools/HeartLog.LegalVerifier/HeartLog.LegalVerifier.csproj --no-restore -- legal-release.json shared/heartlog-legal "$LEGAL_RELEASE_MODE" docs/legal/snapshots
 
 # Publish API
-RUN dotnet publish HeartLog.Api/HeartLog.Api.csproj -c Release -o /app/publish
+RUN dotnet publish HeartLog.Api/HeartLog.Api.csproj -c Release -o /app/publish -p:LegalReleaseMode="$LEGAL_RELEASE_MODE"
 
 
 # -------------------------------

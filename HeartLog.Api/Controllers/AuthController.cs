@@ -1,6 +1,7 @@
 using HeartLog.Api.Auth;
 using HeartLog.Api.DTOs;
 using HeartLog.Api.Mappers;
+using HeartLog.Api.Services;
 using HeartLog.BLL.Exceptions;
 using HeartLog.BLL.Interfaces;
 using HeartLog.BLL.Models.Auth;
@@ -23,17 +24,23 @@ public class AuthController : ControllerBase
     private readonly ICurrentUserService _currentUserService;
     private readonly IHostEnvironment _environment;
     private readonly IConfiguration _configuration;
+    private readonly RegistrationAgreementService _registrationAgreements;
+    private readonly JournalConsentService _journalConsent;
 
     public AuthController(
         IUserService userService,
         ICurrentUserService currentUserService,
         IHostEnvironment environment,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        RegistrationAgreementService registrationAgreements,
+        JournalConsentService journalConsent)
     {
         _userService = userService;
         _currentUserService = currentUserService;
         _environment = environment;
         _configuration = configuration;
+        _registrationAgreements = registrationAgreements;
+        _journalConsent = journalConsent;
     }
 
     [AllowAnonymous]
@@ -41,13 +48,16 @@ public class AuthController : ControllerBase
     [Consumes("application/json")]
     [ProducesResponseType(typeof(ApiResponse<AuthRegistrationResponseDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(LegalConflictResponse), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     [SwaggerOperation(OperationId = "Auth_Register")]
     public async Task<ActionResult<ApiResponse<AuthRegistrationResponseDto>>> Register([FromBody] UserRegisterDto userDto)
     {
-        User user = UserMapper.ToEntity(userDto);
-        var registration = await _userService.RegisterUserAsync(user, userDto.Password);
+        if (userDto.Agreements is null || !userDto.Agreements.TermsAccepted || !userDto.Agreements.PrivacyPolicyAcknowledged)
+            return BadRequest(new ErrorResponse { Code = ApiErrorCode.ValidationFailed, Message = "Both decisions are required." });
+        if (!_registrationAgreements.Valid(userDto.Agreements))
+            return Conflict(new LegalConflictResponse("legal_content_outdated"));
+        var registration = await _registrationAgreements.RegisterAsync(userDto.Email, userDto.Password, userDto.Agreements!);
 
         return Ok(new ApiResponse<AuthRegistrationResponseDto>(
             Success: true,
@@ -256,6 +266,8 @@ public class AuthController : ControllerBase
     {
         var session = await _userService.LoginUserAsync(userDto.Email, userDto.Password);
 
+        await _registrationAgreements.ConsumeAsync(session, HttpContext.RequestAborted);
+
         SetRefreshTokenCookie(session);
 
         return Ok(new ApiResponse<AuthSessionResponseDto>(
@@ -341,11 +353,12 @@ public class AuthController : ControllerBase
     public async Task<ActionResult<ApiResponse<UserMeResponseDto>>> GetCurrentUser()
     {
         var currentUser = await _currentUserService.GetCurrentUserAsync(User);
-
+        var response = UserMapper.ToDto(currentUser);
+        response.JournalConsent.Status = await _journalConsent.GetStatusAsync(currentUser.Id, HttpContext.RequestAborted);
         return Ok(new ApiResponse<UserMeResponseDto>(
             Success: true,
             Message: "Current user retrieved successfully",
-            Data: UserMapper.ToDto(currentUser)));
+            Data: response));
     }
 
     [Authorize]
