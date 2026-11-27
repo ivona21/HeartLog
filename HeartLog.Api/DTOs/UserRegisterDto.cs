@@ -23,4 +23,6 @@ public sealed class RegistrationAgreements
     public bool PrivacyPolicyAcknowledged { get; set; }
     public string TermsVersion { get; set; } = string.Empty;
     public string PrivacyPolicyVersion { get; set; } = string.Empty;
+    public string TermsHash { get; set; } = string.Empty;
+    public string PrivacyPolicyHash { get; set; } = string.Empty;
 }

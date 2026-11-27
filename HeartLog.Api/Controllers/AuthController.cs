@@ -48,14 +48,15 @@ public class AuthController : ControllerBase
     [Consumes("application/json")]
     [ProducesResponseType(typeof(ApiResponse<AuthRegistrationResponseDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(LegalConflictResponse), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     [SwaggerOperation(OperationId = "Auth_Register")]
     public async Task<ActionResult<ApiResponse<AuthRegistrationResponseDto>>> Register([FromBody] UserRegisterDto userDto)
     {
-        if (!RegistrationAgreementService.Valid(userDto.Agreements))
-            return BadRequest(new ErrorResponse { Code = ApiErrorCode.ValidationFailed,
-                Message = "Both agreements and current versions are required." });
+        if (userDto.Agreements is null || !userDto.Agreements.TermsAccepted || !userDto.Agreements.PrivacyPolicyAcknowledged)
+            return BadRequest(new ErrorResponse { Code = ApiErrorCode.ValidationFailed, Message = "Both decisions are required." });
+        if (!_registrationAgreements.Valid(userDto.Agreements))
+            return Conflict(new LegalConflictResponse("legal_content_outdated"));
         var registration = await _registrationAgreements.RegisterAsync(userDto.Email, userDto.Password, userDto.Agreements!);
 
         return Ok(new ApiResponse<AuthRegistrationResponseDto>(

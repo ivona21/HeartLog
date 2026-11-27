@@ -21,6 +21,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HeartLog.BLL.Tests", "tests
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HeartLog.Api.IntegrationTests", "tests\HeartLog.Api.IntegrationTests\HeartLog.Api.IntegrationTests.csproj", "{A85FB631-91C1-4FDC-8D0F-351A68DCEC41}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HeartLog.LegalVerifier", "tools\HeartLog.LegalVerifier\HeartLog.LegalVerifier.csproj", "{C2FF1EDE-8A6F-467C-B3C0-E1CA696B6F7F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -115,6 +117,18 @@ Global
 		{A85FB631-91C1-4FDC-8D0F-351A68DCEC41}.Release|x64.Build.0 = Release|Any CPU
 		{A85FB631-91C1-4FDC-8D0F-351A68DCEC41}.Release|x86.ActiveCfg = Release|Any CPU
 		{A85FB631-91C1-4FDC-8D0F-351A68DCEC41}.Release|x86.Build.0 = Release|Any CPU
+		{C2FF1EDE-8A6F-467C-B3C0-E1CA696B6F7F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C2FF1EDE-8A6F-467C-B3C0-E1CA696B6F7F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C2FF1EDE-8A6F-467C-B3C0-E1CA696B6F7F}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{C2FF1EDE-8A6F-467C-B3C0-E1CA696B6F7F}.Debug|x64.Build.0 = Debug|Any CPU
+		{C2FF1EDE-8A6F-467C-B3C0-E1CA696B6F7F}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{C2FF1EDE-8A6F-467C-B3C0-E1CA696B6F7F}.Debug|x86.Build.0 = Debug|Any CPU
+		{C2FF1EDE-8A6F-467C-B3C0-E1CA696B6F7F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C2FF1EDE-8A6F-467C-B3C0-E1CA696B6F7F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C2FF1EDE-8A6F-467C-B3C0-E1CA696B6F7F}.Release|x64.ActiveCfg = Release|Any CPU
+		{C2FF1EDE-8A6F-467C-B3C0-E1CA696B6F7F}.Release|x64.Build.0 = Release|Any CPU
+		{C2FF1EDE-8A6F-467C-B3C0-E1CA696B6F7F}.Release|x86.ActiveCfg = Release|Any CPU
+		{C2FF1EDE-8A6F-467C-B3C0-E1CA696B6F7F}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -124,5 +138,6 @@ Global
 		{17CD297A-41FE-4AA8-B897-97EB3EBCD3DE} = {07C2787E-EAC7-C090-1BA3-A61EC2A24D84}
 		{9F296C75-9B66-4079-B70A-FA4F43E982AD} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{A85FB631-91C1-4FDC-8D0F-351A68DCEC41} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
+		{C2FF1EDE-8A6F-467C-B3C0-E1CA696B6F7F} = {07C2787E-EAC7-C090-1BA3-A61EC2A24D84}
 	EndGlobalSection
 EndGlobal

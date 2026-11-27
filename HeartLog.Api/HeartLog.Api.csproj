@@ -6,6 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);1591</NoWarn>
+    <LegalReleaseMode Condition="'$(LegalReleaseMode)' == ''">production</LegalReleaseMode>
   </PropertyGroup>
 
   <ItemGroup>
@@ -23,8 +24,23 @@
     <PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="8.1.2" />
   </ItemGroup>
 
+  <Target Name="VerifyLegalReleaseBeforePublish" BeforeTargets="Publish">
+    <Error Condition="!Exists('$(MSBuildProjectDirectory)/../shared/heartlog-legal/releases')" Text="The pinned legal submodule is missing; initialise it before publishing." />
+    <Error Condition="'$(LegalReleaseMode)' != 'production' and '$(LegalReleaseMode)' != 'development'" Text="LegalReleaseMode must be production or development." />
+    <Exec WorkingDirectory="$(MSBuildProjectDirectory)/.." Command="dotnet run --project tools/HeartLog.LegalVerifier/HeartLog.LegalVerifier.csproj --no-restore -- legal-release.json shared/heartlog-legal $(LegalReleaseMode) docs/legal/snapshots" />
+  </Target>
+
   <ItemGroup>
     <ProjectReference Include="..\HeartLog.BLL\HeartLog.BLL.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="../legal-release.json" Link="legal/legal-release.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../shared/heartlog-legal/releases/**/*" Link="legal/shared/releases/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../shared/heartlog-legal/terms/**/*" Link="legal/shared/terms/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../shared/heartlog-legal/privacy/**/*" Link="legal/shared/privacy/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../shared/heartlog-legal/consent/**/*" Link="legal/shared/consent/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../docs/legal/snapshots/**/*" Link="legal/history/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

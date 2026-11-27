@@ -1,55 +1,121 @@
-# Agreement flow (under development)
+# Legal content and agreement API
 
-`GET /api/agreements/requirements` is public and returns the current version,
-URL, and checkbox statement for each requirement. The frontend must display the
-matching bundled documents and submit those exact versions. Published source
-snapshots are in `docs/legal/snapshots`; the consistency check is documented by
-running `sh tools/check-legal-snapshot.sh <frontend-legal-directory>`.
+`legal-release.json` selects the exact manifest in the checked-out, pinned
+`shared/heartlog-legal` submodule. The application verifies the selector,
+manifest and content as UTF-8 without BOM, with LF newlines, and checks SHA-256
+on the exact file bytes. It also verifies the historic `2026-11-23` snapshots
+against their pre-existing hashes. The publish output includes both the shared
+content and historical snapshots; runtime never fetches from GitHub.
 
-`POST /api/auth/register` requires an `agreements` object with `termsAccepted`,
-`privacyPolicyAcknowledged`, `termsVersion`, and `privacyPolicyVersion`. Both
-decisions must be true and both versions must be current. The server stores
-an expiring, hashed registration intent and sends its token in Supabase signup
-metadata. On login it retrieves metadata using the access token and requires the
-same provider user ID returned at signup. Consumption and event inserts share a
-transaction; expired, missing, copied, or consumed intents grant nothing. It
-records only Terms and Privacy Policy decisions, not journal consent.
+The current selection is a **draft**, intended only for local integration.
+Development verification accepts it; publication verification and a
+non-Development application startup reject it. Draft runtime requires
+`ASPNETCORE_ENVIRONMENT=Development` in an isolated environment.
 
-Authenticated clients can fetch `GET /api/agreements/me` to see each current
-version, the last recorded version and action, and `actionRequired`. To submit
-an authenticated decision, call `POST /api/agreements/me` with a unique
-`submissionId` UUID and an `items` array containing `key` and `version`. Each
-item represents an explicit user action. A retry with the same submission ID and
-same items is accepted; reuse with different items conflicts. Existing users with
-no records must be prompted.
+## Requests
 
-`GET /api/auth/me` returns `data.journalConsent.status`, which is `notGranted`,
-`granted`, or `withdrawn`. An absent event is `notGranted`. The frontend should
-show the consent checkbox on the first save attempt, preserve the draft if the
-user declines, and submit the exact wording displayed:
+`GET /api/agreements/requirements` returns current `terms` and `privacyPolicy`
+requirements with `version`, `sha256`, `url`, and `statement`. Registration
+requires one checkbox reflected as separate decisions:
+
+```json
+{
+  "email": "user@example.com",
+  "password": "StrongPass123!",
+  "agreements": {
+    "termsAccepted": true,
+    "privacyPolicyAcknowledged": true,
+    "termsVersion": "draft-v1",
+    "termsHash": "<manifest documents.terms.sha256>",
+    "privacyPolicyVersion": "draft-v1",
+    "privacyPolicyHash": "<manifest documents.privacy.sha256>"
+  }
+}
+```
+
+The values must identify the content the frontend displayed. A missing, unknown
+or stale version or hash returns HTTP 409 with `code: legal_content_outdated`.
+False decisions return HTTP 400. The registration intent stores the submitted
+versions and hashes; after provider identity verification two separate events
+record them.
+
+`GET /api/agreements/journal-consent/statement` provides `consentId`,
+`consentVersion`, `contentHash`, `checkboxLabel`, `statement`, `explanation`,
+and `withdrawal`. The frontend may bundle these values but must show the entire
+statement and explanation before obtaining consent. On the first save attempt,
+after the user checks the box, submit to `POST /api/agreements/journal-consent`:
 
 ```json
 {
   "submissionId": "f79f2881-3959-4147-920c-940c9098c683",
   "journalProcessingConsent": true,
-  "statement": "I explicitly consent to HeartLog processing the emotions and journal entries I choose to save, including information they may reveal about my health, religious beliefs or sexual orientation, so that HeartLog can save and display my entries. I can withdraw this consent at any time in Settings."
+  "consentId": "saved-entries-sensitive-data",
+  "consentVersion": "draft-v1",
+  "contentHash": "<manifest consents.savedEntries.sha256>",
+  "statement": "<the exact manifest consent statement shown to the user>"
 }
 ```
 
-Send this body to `POST /api/agreements/journal-consent`. The backend verifies
-the text matches the current statement and stores that exact text, without a
-consent document version. The current wording is also available from the public
-`GET /api/agreements/journal-consent/statement`. A client may bundle that wording,
-but must handle `409 journal_consent_statement_changed` by showing the new
-wording and obtaining a fresh decision. `submissionId` makes identical retries
-idempotent; reuse for a different decision returns `409 submission_id_reused`.
-After `204`, refresh `/api/auth/me` and retry the save. Journal endpoints return
-`403 journal_consent_required` without a grant. The frontend can render an empty
-state without calling them for users who have not consented.
+The consent version and hash are evidence identifiers, not a separate document
+for the user to accept. A stale value or statement returns HTTP 409 with
+`code: legal_content_outdated`; show the new content and obtain a fresh decision.
+An identical retry with the same submission ID returns 204; reuse for different
+data returns `409 submission_id_reused`. After a grant, refresh
+`GET /api/auth/me`, then retry saving the preserved draft. Journal endpoints
+return `403 journal_consent_required` when no grant is active.
 
-Do not deploy this flow yet. The unconfirmed duplicate-signup behavior could not
-be verified in the configured Supabase project because the provider returned HTTP
-500 during the live probe. The frontend agreement UI, shared content build
-integration, withdrawal, and complete failure/race coverage remain
-unfinished. Signup metadata is user-readable; the token is therefore also bound
-to the provider ID and must never be treated as a secret proof of identity.
+Authenticated users can review `GET /api/agreements/me` and submit Terms and
+privacy decisions to `POST /api/agreements/me`, using a unique `submissionId`
+and `items` containing `key`, `version`, and `contentHash`. Old versions and
+hashes are not accepted for new decisions. Existing consent events remain in
+force regardless of later wording changes; this release does not implement
+withdrawal and does not silently withdraw or re-grant consent.
+
+## History and rollout
+
+The migration adds nullable evidence fields only. Existing events and pending
+registration intents retain their old IDs, versions, text and null hashes; no
+hash or consent is invented for them. Historic Terms and privacy versions and
+the old consent statement remain distinct from the shared draft files. The
+requirements endpoint may indicate renewed action for a user whose historical
+acceptance does not identify the selected current content.
+
+By default, older clients that omit hashes or send `2026-11-23` receive 409
+`legal_content_outdated` for new decisions. For a controlled transition only,
+`Legal__AllowLegacyClients=true` additionally accepts the exact historic
+`2026-11-23` Terms and Privacy Policy versions without hashes, and the exact
+historic journal statement without consent identifier, version or hash. No
+missing evidence is invented. Other old or unknown inputs still receive 409.
+Legacy decisions are recorded as legacy decisions and may remain marked as
+requiring action for the selected current documents. Already-granted consent and
+authenticated journal access continue to work regardless of that flag.
+
+Before rollout, build a frontend that bundles the selected release, displays
+the full consent content, sends these fields, and handles 409 by prompting a
+refresh. Coordinate its release with the backend; if legacy clients must remain
+supported during the transition, enable the flag for a limited, reviewed period.
+Monitor and retire old bundles, then remove the flag. A new frontend must not
+silently downgrade to the old API while displaying new text. The current draft
+cannot be deployed as a production release. Test the coordinated rollout in an
+isolated environment first.
+
+The unconfirmed duplicate-signup behavior remains unverified in the configured
+Supabase project because its live probe returned HTTP 500. Frontend integration,
+shared-content build integration, withdrawal, and additional failure/race tests
+remain unfinished. Do not deploy until those items and publication review are
+complete.
+
+## Build and hosting
+
+Initialise the recorded commit with `git submodule update --init --recursive`.
+In GitHub Actions configure `HEARTLOG_LEGAL_READ_TOKEN` as a read-only token
+with access to both the app and private legal repositories. PRs from forks do
+not receive repository secrets, so require a trusted same-repository workflow
+or an appropriately scoped GitHub App workflow for those checks.
+
+For Git-backed Render builds, grant the connected Render Git provider credential
+access to both repositories. Render checks out `.gitmodules` with those
+credentials before building; Docker itself neither fetches Git nor stores a key.
+The existing `render.yaml` should be reviewed separately: its indentation and
+repository/connection settings predate this integration and are not reliable as
+a deployable blueprint. Docker builds default to production legal validation.

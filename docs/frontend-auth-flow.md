@@ -36,8 +36,10 @@ HeartLog identity; use `GET /api/auth/me`.
   "agreements": {
     "termsAccepted": true,
     "privacyPolicyAcknowledged": true,
-    "termsVersion": "2026-11-23",
-    "privacyPolicyVersion": "2026-11-23"
+    "termsVersion": "draft-v1",
+    "termsHash": "<manifest documents.terms.sha256>",
+    "privacyPolicyVersion": "draft-v1",
+    "privacyPolicyHash": "<manifest documents.privacy.sha256>"
   }
 }
 ```

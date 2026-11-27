@@ -24,8 +24,21 @@ public sealed class AuthenticationLifecycleTests
         using var client = host.Client(Guid.NewGuid());
         client.DefaultRequestHeaders.Remove("X-Test-Subject");
         var id = Guid.NewGuid();
+        var legal = PostgresTestHost.Legal;
         var agreements = new { termsAccepted = true, privacyPolicyAcknowledged = true,
-            termsVersion = "2026-11-23", privacyPolicyVersion = "2026-11-23" };
+            termsVersion = legal.Terms.Version, privacyPolicyVersion = legal.Privacy.Version,
+            termsHash = legal.Terms.Sha256, privacyPolicyHash = legal.Privacy.Sha256 };
+        using var outdated = await client.PostAsJsonAsync($"{Route}/register", new { email = Email, password = ScriptedSupabase.Password,
+            agreements = new { termsAccepted = true, privacyPolicyAcknowledged = true,
+                termsVersion = "2026-11-23", privacyPolicyVersion = "2026-11-23" } });
+        Assert.Equal(HttpStatusCode.Conflict, outdated.StatusCode);
+        Assert.Equal("legal_content_outdated", (await Json(outdated))["code"]!.GetValue<string>());
+        Assert.Empty(provider.Calls);
+        using var badHash = await client.PostAsJsonAsync($"{Route}/register", new { email = Email, password = ScriptedSupabase.Password,
+            agreements = new { termsAccepted = true, privacyPolicyAcknowledged = true, termsVersion = legal.Terms.Version, privacyPolicyVersion = legal.Privacy.Version,
+                termsHash = new string('0', 64), privacyPolicyHash = legal.Privacy.Sha256 } });
+        Assert.Equal(HttpStatusCode.Conflict, badHash.StatusCode);
+        Assert.Empty(provider.Calls);
         provider.Reply("POST", "/auth/v1/signup", body: new { id, email = Email, email_confirmed_at = (string?)null });
         using var signup = await client.PostAsJsonAsync($"{Route}/register", new { email = Email, password = ScriptedSupabase.Password, agreements });
         Assert.Equal(HttpStatusCode.OK, signup.StatusCode);
@@ -156,8 +169,10 @@ public sealed class AuthenticationLifecycleTests
         await host.StartAsync(provider.Configure);
         using var client = host.Client(PostgresTestHost.Owner);
         client.DefaultRequestHeaders.Remove("X-Test-Subject");
+        var legal = PostgresTestHost.Legal;
         var agreements = new { termsAccepted = true, privacyPolicyAcknowledged = true,
-            termsVersion = "2026-11-23", privacyPolicyVersion = "2026-11-23" };
+            termsVersion = legal.Terms.Version, privacyPolicyVersion = legal.Privacy.Version,
+            termsHash = legal.Terms.Sha256, privacyPolicyHash = legal.Privacy.Sha256 };
         provider.Reply("POST", "/auth/v1/signup", body: new { id = Guid.NewGuid(), email = Email, email_confirmed_at = (string?)null });
         using var signup = await client.PostAsJsonAsync($"{Route}/register", new { email = Email, password = ScriptedSupabase.Password, agreements });
         Assert.Equal(HttpStatusCode.OK, signup.StatusCode);

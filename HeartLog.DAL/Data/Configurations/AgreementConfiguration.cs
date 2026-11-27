@@ -12,6 +12,8 @@ public class AgreementEventConfiguration : IEntityTypeConfiguration<AgreementEve
         builder.Property(x => x.AgreementKey).HasMaxLength(40).IsRequired();
         builder.Property(x => x.Version).HasMaxLength(64);
         builder.Property(x => x.Statement).HasMaxLength(4000);
+        builder.Property(x => x.ContentHash).HasMaxLength(64);
+        builder.Property(x => x.ConsentId).HasMaxLength(100);
         builder.Property(x => x.Action).HasMaxLength(24).IsRequired();
         builder.Property(x => x.Source).HasMaxLength(32).IsRequired();
         builder.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
@@ -28,6 +30,8 @@ public class RegistrationIntentConfiguration : IEntityTypeConfiguration<Registra
         builder.Property(x => x.TokenHash).HasMaxLength(64).IsRequired();
         builder.Property(x => x.TermsVersion).HasMaxLength(64).IsRequired();
         builder.Property(x => x.PrivacyPolicyVersion).HasMaxLength(64).IsRequired();
+        builder.Property(x => x.TermsHash).HasMaxLength(64);
+        builder.Property(x => x.PrivacyPolicyHash).HasMaxLength(64);
         builder.HasIndex(x => x.TokenHash).IsUnique();
         builder.HasIndex(x => x.ExpiresAtUtc);
     }

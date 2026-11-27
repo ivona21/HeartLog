@@ -19,7 +19,7 @@
                                 "schema": {
                                     "type": "array",
                                     "items": {
-                                        "$ref": "#/components/schemas/AgreementRequirement"
+                                        "$ref": "#/components/schemas/CurrentLegalRequirement"
                                     }
                                 }
                             },
@@ -27,7 +27,7 @@
                                 "schema": {
                                     "type": "array",
                                     "items": {
-                                        "$ref": "#/components/schemas/AgreementRequirement"
+                                        "$ref": "#/components/schemas/CurrentLegalRequirement"
                                     }
                                 }
                             },
@@ -35,7 +35,7 @@
                                 "schema": {
                                     "type": "array",
                                     "items": {
-                                        "$ref": "#/components/schemas/AgreementRequirement"
+                                        "$ref": "#/components/schemas/CurrentLegalRequirement"
                                     }
                                 }
                             }
@@ -128,17 +128,17 @@
                         "content": {
                             "text/plain": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/ProblemDetails"
+                                    "$ref": "#/components/schemas/LegalConflictResponse"
                                 }
                             },
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/ProblemDetails"
+                                    "$ref": "#/components/schemas/LegalConflictResponse"
                                 }
                             },
                             "text/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/ProblemDetails"
+                                    "$ref": "#/components/schemas/LegalConflictResponse"
                                 }
                             }
                         }
@@ -193,8 +193,25 @@
                     }
                 },
                 "responses": {
-                    "200": {
-                        "description": "OK"
+                    "409": {
+                        "description": "Conflict",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LegalConflictResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LegalConflictResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LegalConflictResponse"
+                                }
+                            }
+                        }
                     }
                 },
                 "security": [
@@ -245,7 +262,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
+                                    "$ref": "#/components/schemas/LegalConflictResponse"
                                 }
                             }
                         }
@@ -1240,25 +1257,6 @@
     },
     "components": {
         "schemas": {
-            "AgreementRequirement": {
-                "type": "object",
-                "properties": {
-                    "key": {
-                        "type": "string"
-                    },
-                    "version": {
-                        "type": "string"
-                    },
-                    "url": {
-                        "type": "string",
-                        "nullable": true
-                    },
-                    "statement": {
-                        "type": "string"
-                    }
-                },
-                "additionalProperties": false
-            },
             "AgreementSubmission": {
                 "type": "object",
                 "properties": {
@@ -1282,6 +1280,9 @@
                         "type": "string"
                     },
                     "version": {
+                        "type": "string"
+                    },
+                    "contentHash": {
                         "type": "string"
                     }
                 },
@@ -1415,6 +1416,27 @@
                         "type": "string",
                         "format": "date-time",
                         "nullable": true
+                    }
+                },
+                "additionalProperties": false
+            },
+            "CurrentLegalRequirement": {
+                "type": "object",
+                "properties": {
+                    "key": {
+                        "type": "string"
+                    },
+                    "version": {
+                        "type": "string"
+                    },
+                    "sha256": {
+                        "type": "string"
+                    },
+                    "url": {
+                        "type": "string"
+                    },
+                    "statement": {
+                        "type": "string"
                     }
                 },
                 "additionalProperties": false
@@ -1611,7 +1633,25 @@
             "JournalConsentStatement": {
                 "type": "object",
                 "properties": {
+                    "consentId": {
+                        "type": "string"
+                    },
+                    "consentVersion": {
+                        "type": "string"
+                    },
+                    "contentHash": {
+                        "type": "string"
+                    },
+                    "checkboxLabel": {
+                        "type": "string"
+                    },
                     "statement": {
+                        "type": "string"
+                    },
+                    "explanation": {
+                        "type": "string"
+                    },
+                    "withdrawal": {
                         "type": "string"
                     }
                 },
@@ -1639,6 +1679,27 @@
                     "statement": {
                         "type": "string",
                         "nullable": true
+                    },
+                    "consentId": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "consentVersion": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "contentHash": {
+                        "type": "string",
+                        "nullable": true
+                    }
+                },
+                "additionalProperties": false
+            },
+            "LegalConflictResponse": {
+                "type": "object",
+                "properties": {
+                    "code": {
+                        "type": "string"
                     }
                 },
                 "additionalProperties": false
@@ -1683,6 +1744,12 @@
                         "type": "string"
                     },
                     "privacyPolicyVersion": {
+                        "type": "string"
+                    },
+                    "termsHash": {
+                        "type": "string"
+                    },
+                    "privacyPolicyHash": {
                         "type": "string"
                     }
                 },

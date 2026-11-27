@@ -1,6 +1,6 @@
 namespace HeartLog.BLL.Models.Agreements;
 
-/// <summary>Versions identify immutable texts, not the dates on which users accepted them.</summary>
+/// <summary>Stable legacy identifiers and evidence. Current content comes from LegalRelease.</summary>
 public static class AgreementCatalog
 {
     public const string Terms = "terms";

@@ -12,12 +12,15 @@ using Microsoft.EntityFrameworkCore;
 namespace HeartLog.Api.Services;
 
 public sealed class RegistrationAgreementService(
-    ApplicationDbContext db, IExternalAuthService provider, IUserRepository users)
+    ApplicationDbContext db, IExternalAuthService provider, IUserRepository users, LegalRelease legal, IConfiguration configuration)
 {
-    public static bool Valid(RegistrationAgreements? a) => a is not null &&
+    public bool Valid(RegistrationAgreements? a) => a is not null &&
         a.TermsAccepted && a.PrivacyPolicyAcknowledged &&
-        AgreementCatalog.IsCurrent(AgreementCatalog.Terms, a.TermsVersion) &&
-        AgreementCatalog.IsCurrent(AgreementCatalog.PrivacyPolicy, a.PrivacyPolicyVersion);
+        ((a.TermsVersion == legal.Terms.Version && a.TermsHash == legal.Terms.Sha256 &&
+          a.PrivacyPolicyVersion == legal.Privacy.Version && a.PrivacyPolicyHash == legal.Privacy.Sha256) ||
+         (configuration.GetValue<bool>("Legal:AllowLegacyClients") &&
+          a.TermsVersion == AgreementCatalog.TermsVersion && a.PrivacyPolicyVersion == AgreementCatalog.PrivacyPolicyVersion &&
+          string.IsNullOrEmpty(a.TermsHash) && string.IsNullOrEmpty(a.PrivacyPolicyHash)));
 
     public async Task<ExternalAuthRegistrationResult> RegisterAsync(string email, string password, RegistrationAgreements agreements)
     {
@@ -28,6 +31,8 @@ public sealed class RegistrationAgreementService(
         {
             TokenHash = Hash(token), TermsVersion = agreements.TermsVersion,
             PrivacyPolicyVersion = agreements.PrivacyPolicyVersion,
+            TermsHash = string.IsNullOrEmpty(agreements.TermsHash) ? null : agreements.TermsHash,
+            PrivacyPolicyHash = string.IsNullOrEmpty(agreements.PrivacyPolicyHash) ? null : agreements.PrivacyPolicyHash,
             SubmittedAtUtc = now, ExpiresAtUtc = now.AddDays(7)
         };
         db.RegistrationIntents.Add(intent);
@@ -56,13 +61,13 @@ public sealed class RegistrationAgreementService(
             if (changed != 1) return;
             db.AgreementEvents.AddRange(new[]
             {
-                Create(AgreementCatalog.Terms, intent.TermsVersion, "accepted"),
-                Create(AgreementCatalog.PrivacyPolicy, intent.PrivacyPolicyVersion, "acknowledged")
+                Create(AgreementCatalog.Terms, intent.TermsVersion, intent.TermsHash, "accepted"),
+                Create(AgreementCatalog.PrivacyPolicy, intent.PrivacyPolicyVersion, intent.PrivacyPolicyHash, "acknowledged")
             });
             await db.SaveChangesAsync(cancellationToken);
-            AgreementEvent Create(string key, string version, string action) => new()
+            AgreementEvent Create(string key, string version, string? hash, string action) => new()
             {
-                UserId = user.Id, AgreementKey = key, Version = version, Action = action,
+                UserId = user.Id, AgreementKey = key, Version = version, ContentHash = hash, Action = action,
                 Source = "registration", OccurredAtUtc = intent.SubmittedAtUtc, SubmissionId = intent.Id
             };
         }, cancellationToken);
